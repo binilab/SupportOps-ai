@@ -1,10 +1,10 @@
 # PROGRESS
 
 ## 현재 단계
-**Phase 2 — 완료 (Dense Retrieval과 pgvector 저장 경로)**
+**Phase 3 — 완료 (BM25 + Dense Hybrid 검색)**
 
 ## 현재 상태
-Phase 1과 동일한 정책 35개 청크·Gold 40개로 다국어 Dense 검색을 측정하고 PostgreSQL/pgvector에 35개 벡터를 실제 저장·조회했다. 로컬과 DB 검색 지표가 일치해 Phase 2를 완료했다. RAG와 Agent는 시작하지 않았다.
+고정 정책 35개 청크·Gold 40개 중 평가 가능한 37개에서 BM25와 로컬 Dense 순위를 RRF로 결합했다. Hybrid의 Recall@1/3/5와 MRR은 0.7432/0.9324/0.9730/0.9009로 Dense 단독보다 모두 높았다. 중앙 검색 시간은 5.680ms에서 6.208ms로 늘었다. RAG와 Agent는 시작하지 않았다.
 
 ## 완료한 항목
 - [x] 프로젝트 범위 정의
@@ -31,9 +31,14 @@ Phase 1과 동일한 정책 35개 청크·Gold 40개로 다국어 Dense 검색�
 - [x] 동일 Gold/정책 해시에서 로컬·pgvector 검색 지표와 Top 5 실패 목록 일치 확인
 - [x] 실패 5개와 BM25 대비 품질·latency 차이를 `docs/PHASE2_DENSE.md`에 기록
 - [x] Gold 검증기 통과, PostgreSQL 통합 테스트 포함 pytest 7개 통과
+- [x] Phase 3 BM25 + Dense 정책 ID 순위를 RRF(상수 60)로 결합하고 출처 청크 보존
+- [x] 동일 Gold/정책 해시에서 BM25·Dense·Hybrid 품질과 latency 비교
+- [x] Hybrid Recall@1/3/5 0.7432/0.9324/0.9730, MRR 0.9009 측정
+- [x] Top 5 누락 1개(`eval_0033`)와 Dense 대비 latency 증가를 `docs/PHASE3_RETRIEVAL.md`에 기록
+- [x] Gold 검증기 통과, pytest 8개 통과 (DB 미설정으로 통합 테스트 1개 건너뜀)
 
 ## 현재 작업
-Phase 2 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
+Phase 3 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 
 ## Phase 0 완료 조건
 - [x] 제품 문제와 범위 문서화
@@ -60,15 +65,19 @@ Phase 2 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 - [x] PostgreSQL/pgvector 실제 저장·조회 경로 검증
 - [x] 실패 사례와 latency, 재현 방법 기록
 
+## Phase 3 완료 조건
+- [x] 고정 Gold에서 BM25·Dense 대비 정량 개선 확인
+- [x] 검색 품질과 latency의 절충을 명시하고 기본 검색 방법 선택
+- [x] 남은 실패 사례와 재현 방법 기록
+
 ## 다음 작업
-별도 요청이 있을 때 Phase 3을 시작한다.
+별도 요청이 있을 때 Phase 4를 시작한다.
 
 ## 아직 시작하지 않을 것
-- Hybrid / Reranker 검색 개선
 - RAG / LangChain
 - Agent / LangGraph
 - FastAPI
 - Docker 기반 실행 구성
 
 ## 막힌 사항
-없음. Dense의 Top 5 누락 5개와 BM25 대비 Recall@5 감소는 `docs/PHASE2_DENSE.md`에 기록했다.
+없음. Hybrid의 Top 5 누락 `eval_0033`은 `docs/PHASE3_RETRIEVAL.md`에 기록했다.

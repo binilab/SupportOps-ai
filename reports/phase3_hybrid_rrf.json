@@ -1,0 +1,37 @@
+{
+  "gold_count": 40,
+  "evaluated_count": 37,
+  "excluded_no_policy_count": 3,
+  "chunk_count": 35,
+  "policy_count": 8,
+  "recall_at_1": 0.7432432432432432,
+  "recall_at_3": 0.9324324324324325,
+  "recall_at_5": 0.972972972972973,
+  "mrr": 0.9009009009009009,
+  "latency_ms_median": 6.208042,
+  "latency_ms_p95": 7.803084,
+  "failures_at_5": [
+    {
+      "id": "eval_0033",
+      "category": "order_cancel_noisy",
+      "expected_policy_ids": [
+        "policy_cancel_v1"
+      ],
+      "top5_policy_ids": [
+        "policy_shipping_v1",
+        "policy_refund_v1",
+        "policy_membership_v1",
+        "policy_coupon_v1",
+        "policy_points_v1"
+      ]
+    }
+  ],
+  "method": "policy-level BM25 + dense RRF",
+  "rrf_rank_constant": 60,
+  "candidate_count_per_retriever": 8,
+  "model_id": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "model_revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+  "gold_sha256": "aa7988d1364a4a3e8020845fe761cbfb545e074d02b5cba55d31a0d2248c5b6c",
+  "policy_corpus_sha256": "7d336e6ee69406f488f0f9677be34adf5e8930193028f0a81f3fcb2f51e4a1ce",
+  "python_version": "3.11.14"
+}
