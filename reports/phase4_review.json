@@ -1,0 +1,12 @@
+{
+  "report_sha256": "f72cda631af75192516c52fba32a740e53afdf50b62da79a272832bb345da14f",
+  "review_scope": "All 25 policy-answer-expected cases, compared with Gold expected_facts and the cited policy chunks. Answer accuracy requires every expected fact; groundedness requires no unsupported material claim; citation accuracy requires cited chunks to support the material claims.",
+  "incorrect_answer_ids": ["eval_0038", "eval_0039", "eval_0040"],
+  "ungrounded_ids": [],
+  "incorrect_citation_ids": [],
+  "notes": {
+    "eval_0038": "교환에는 동일 옵션 재고 조건이 필요하지만 답변이 조건 없이 교환 가능하다고 했다.",
+    "eval_0039": "개별 조건이 없으면 일반 쿠폰 정책을 따른다는 Gold의 필수 사실을 누락했다.",
+    "eval_0040": "개별 조건이 일반 정책보다 우선한다는 Gold의 필수 사실을 누락했다. 질문에 대한 기본 정책 답변 자체는 맞다."
+  }
+}
