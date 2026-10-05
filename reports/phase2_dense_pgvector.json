@@ -1,0 +1,106 @@
+{
+  "gold_count": 40,
+  "evaluated_count": 37,
+  "excluded_no_policy_count": 3,
+  "chunk_count": 35,
+  "policy_count": 8,
+  "recall_at_1": 0.7297297297297297,
+  "recall_at_3": 0.8378378378378378,
+  "recall_at_5": 0.918918918918919,
+  "mrr": 0.8905405405405407,
+  "latency_ms_median": 7.070792,
+  "latency_ms_p95": 8.310417,
+  "failures_at_5": [
+    {
+      "id": "eval_0010",
+      "category": "custom_restriction",
+      "expected_policy_ids": [
+        "policy_refund_v1",
+        "policy_product_restrictions_v1"
+      ],
+      "top5_policy_ids": [
+        "policy_shipping_v1",
+        "policy_refund_v1",
+        "policy_exchange_v1",
+        "policy_coupon_v1",
+        "policy_cancel_v1"
+      ]
+    },
+    {
+      "id": "eval_0013",
+      "category": "order_cancel_custom",
+      "expected_policy_ids": [
+        "policy_cancel_v1",
+        "policy_product_restrictions_v1"
+      ],
+      "top5_policy_ids": [
+        "policy_cancel_v1",
+        "policy_exchange_v1",
+        "policy_refund_v1",
+        "policy_coupon_v1",
+        "policy_shipping_v1"
+      ]
+    },
+    {
+      "id": "eval_0016",
+      "category": "order_hygiene_opened",
+      "expected_policy_ids": [
+        "policy_refund_v1",
+        "policy_product_restrictions_v1"
+      ],
+      "top5_policy_ids": [
+        "policy_shipping_v1",
+        "policy_refund_v1",
+        "policy_exchange_v1",
+        "policy_membership_v1",
+        "policy_coupon_v1"
+      ]
+    },
+    {
+      "id": "eval_0033",
+      "category": "order_cancel_noisy",
+      "expected_policy_ids": [
+        "policy_cancel_v1"
+      ],
+      "top5_policy_ids": [
+        "policy_shipping_v1",
+        "policy_refund_v1",
+        "policy_membership_v1",
+        "policy_coupon_v1",
+        "policy_points_v1"
+      ]
+    },
+    {
+      "id": "eval_0040",
+      "category": "product_default_policy",
+      "expected_policy_ids": [
+        "policy_exchange_v1",
+        "policy_product_restrictions_v1"
+      ],
+      "top5_policy_ids": [
+        "policy_exchange_v1",
+        "policy_coupon_v1",
+        "policy_refund_v1",
+        "policy_shipping_v1",
+        "policy_points_v1"
+      ]
+    }
+  ],
+  "backend": "pgvector",
+  "model_id": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "model_revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+  "embedding_dimension": 384,
+  "normalized_embeddings": true,
+  "distance": "cosine",
+  "gold_sha256": "aa7988d1364a4a3e8020845fe761cbfb545e074d02b5cba55d31a0d2248c5b6c",
+  "policy_corpus_sha256": "7d336e6ee69406f488f0f9677be34adf5e8930193028f0a81f3fcb2f51e4a1ce",
+  "python_version": "3.11.14",
+  "sentence_transformers_version": "6.1.0",
+  "transformers_version": "5.18.0",
+  "torch_version": "2.14.1",
+  "pgvector_python_version": "0.5.0",
+  "psycopg_version": "3.3.6",
+  "numpy_version": "2.4.1",
+  "stored_vector_count": 35,
+  "pgvector_extension_version": "0.8.7"
+}

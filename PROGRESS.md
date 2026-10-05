@@ -1,10 +1,10 @@
 # PROGRESS
 
 ## 현재 단계
-**Phase 1 — 완료 (정책 정규화와 Lexical 검색 기준선)**
+**Phase 2 — 완료 (Dense Retrieval과 pgvector 저장 경로)**
 
 ## 현재 상태
-Phase 0의 고정 Gold를 사용해 정책 Markdown을 절 단위 청크로 정규화하고 BM25 검색 기준선을 측정했다. 37개 정책 검색 질문에서 Recall@1/3/5와 MRR을 기록했으며 Phase 1은 완료됐다. Dense 검색, RAG, Agent는 시작하지 않았다.
+Phase 1과 동일한 정책 35개 청크·Gold 40개로 다국어 Dense 검색을 측정하고 PostgreSQL/pgvector에 35개 벡터를 실제 저장·조회했다. 로컬과 DB 검색 지표가 일치해 Phase 2를 완료했다. RAG와 Agent는 시작하지 않았다.
 
 ## 완료한 항목
 - [x] 프로젝트 범위 정의
@@ -25,9 +25,15 @@ Phase 0의 고정 Gold를 사용해 정책 Markdown을 절 단위 청크로 정�
 - [x] Recall@1 0.6081 / Recall@3 0.8378 / Recall@5 0.9459 / MRR 0.7883 기록
 - [x] Top 5 실패 2개(`eval_0018`, `eval_0033`) 분석 및 기준선 보고서 작성
 - [x] `python3 scripts/validate_gold_dataset.py` 통과, `python3 -m pytest -q` 5개 통과
+- [x] Phase 2 모델 revision 고정, 384차원 정규화 임베딩과 코사인 검색 구현
+- [x] Gold 37개에서 Dense Recall@1/3/5 0.7297/0.8378/0.9189, MRR 0.8905 측정
+- [x] pgvector 0.8.7에 벡터 35개 저장·조회 및 정책 ID 메타데이터 필터 확인
+- [x] 동일 Gold/정책 해시에서 로컬·pgvector 검색 지표와 Top 5 실패 목록 일치 확인
+- [x] 실패 5개와 BM25 대비 품질·latency 차이를 `docs/PHASE2_DENSE.md`에 기록
+- [x] Gold 검증기 통과, PostgreSQL 통합 테스트 포함 pytest 7개 통과
 
 ## 현재 작업
-Phase 1 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
+Phase 2 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 
 ## Phase 0 완료 조건
 - [x] 제품 문제와 범위 문서화
@@ -48,15 +54,21 @@ Phase 1 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 - [x] Recall@1/3/5, MRR, latency와 실패 사례 기록
 - [x] 검증기 및 pytest 통과
 
+## Phase 2 완료 조건
+- [x] 같은 Gold 평가셋에서 Dense Retrieval 평가 결과 존재
+- [x] Embedding 차원, 정규화, 코사인 거리, Top-K 및 메타데이터 필터 확인
+- [x] PostgreSQL/pgvector 실제 저장·조회 경로 검증
+- [x] 실패 사례와 latency, 재현 방법 기록
+
 ## 다음 작업
-별도 요청이 있을 때 Phase 2를 시작한다.
+별도 요청이 있을 때 Phase 3을 시작한다.
 
 ## 아직 시작하지 않을 것
-- Embedding / Vector DB
+- Hybrid / Reranker 검색 개선
 - RAG / LangChain
 - Agent / LangGraph
 - FastAPI
-- Docker
+- Docker 기반 실행 구성
 
 ## 막힌 사항
-없음. 기준선의 한국어 활용형·오타 검색 실패는 `docs/PHASE1_BASELINE.md`에 기록했다.
+없음. Dense의 Top 5 누락 5개와 BM25 대비 Recall@5 감소는 `docs/PHASE2_DENSE.md`에 기록했다.

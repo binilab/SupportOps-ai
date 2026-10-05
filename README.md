@@ -6,9 +6,9 @@ Applied AI Engineer 신입/인턴 지원용 대표 포트폴리오 프로젝트�
 한국 이커머스 고객지원 Copilot을 직접 설계하고, 평가하고, 개선하고, 서비스 형태로 완성하는 것이 목표다.
 
 ## 현재 상태
-**Phase 1 — 정책 정규화와 BM25 검색 기준선 완료**
+**Phase 2 — Dense 검색과 pgvector 저장 경로 완료**
 
-고정 Gold로 정책 검색의 첫 결과를 측정했다. 결과와 실패 사례는 [Phase 1 기준선 문서](docs/PHASE1_BASELINE.md)에 있다. Dense 검색, RAG, Agent는 아직 시작하지 않았다.
+고정 Gold로 [BM25 기준선](docs/PHASE1_BASELINE.md)과 [Dense/pgvector 결과](docs/PHASE2_DENSE.md)를 같은 기준에서 측정했다. RAG와 Agent는 아직 시작하지 않았다.
 
 ## 포트폴리오 핵심 흐름
 문제 정의
@@ -41,6 +41,7 @@ python3 -m pip install -e '.[dev]'
 python3 scripts/validate_gold_dataset.py
 python3 -m pytest -q
 python3 scripts/evaluate_bm25.py
+python3 scripts/evaluate_dense.py --backend local
 ```
 
 ## 데이터 설계 원칙
