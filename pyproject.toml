@@ -3,7 +3,9 @@ name = "supportops-ai"
 version = "0.1.0"
 description = "Evaluated, evidence-grounded Korean commerce support agent portfolio project"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "rank-bm25==0.2.2",
+]
 
 [project.optional-dependencies]
 dev = [
