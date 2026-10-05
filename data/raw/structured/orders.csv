@@ -1,0 +1,11 @@
+order_id,customer_id,product_id,status,ordered_at,delivered_at,used,seal_opened,custom_production_started,digital_redeemed
+ORD-1001,C-001,P-1001,DELIVERED,2026-09-28,2026-10-01,false,false,false,false
+ORD-1002,C-002,P-1002,SHIPPED,2026-10-02,,false,false,false,false
+ORD-1003,C-003,P-1003,PREPARING,2026-10-03,,false,false,true,false
+ORD-1004,C-004,P-1004,DELIVERED,2026-09-29,2026-10-02,false,true,false,false
+ORD-1005,C-005,P-1005,DELIVERED,2026-10-01,2026-10-01,false,false,false,true
+ORD-1006,C-006,P-1006,DELIVERED,2026-09-20,2026-09-23,false,false,false,false
+ORD-1007,C-007,P-1001,DELIVERED,2026-09-29,2026-10-01,true,false,false,false
+ORD-1008,C-008,P-1008,PAID,2026-10-05,,false,false,false,false
+ORD-1009,C-009,P-1009,PREPARING,2026-10-04,,false,false,false,false
+ORD-1010,C-010,P-1010,DELIVERED,2026-09-30,2026-10-03,false,false,false,false

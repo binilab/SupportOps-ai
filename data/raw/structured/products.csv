@@ -1,0 +1,11 @@
+product_id,name,category,price,is_custom,is_hygiene,is_digital,coupon_allowed
+P-1001,베이직 코튼 셔츠,fashion,39000,false,false,false,true
+P-1002,러닝 스니커즈,fashion,89000,false,false,false,true
+P-1003,커스텀 이니셜 머그,lifestyle,28000,true,false,false,false
+P-1004,밀봉 페이스 마스크 10매,beauty,22000,false,true,false,true
+P-1005,디지털 기프트 코드 5만원,digital,50000,false,false,true,false
+P-1006,리넨 팬츠,fashion,59000,false,false,false,true
+P-1007,한정판 후드,fashion,129000,false,false,false,false
+P-1008,테이블 램프,lifestyle,74000,false,false,false,true
+P-1009,세라믹 접시 세트,lifestyle,46000,false,false,false,true
+P-1010,밀봉 바디 패치,beauty,18000,false,true,false,true
