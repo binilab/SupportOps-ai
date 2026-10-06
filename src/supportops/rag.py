@@ -11,6 +11,7 @@ from typing import Protocol
 from ollama import Client
 
 from supportops.lexical import PolicyChunk, PolicyHit
+from supportops.usage import record_usage
 
 ORDER_ID_RE = re.compile(r"\bORD-\d+\b", re.IGNORECASE)
 PERSONAL_CONTACT_RE = re.compile(r"(?:직원|타인|다른\s*사람).*?(?:개인|사적).*?(?:연락처|휴대폰|전화번호|이메일)")
@@ -84,6 +85,7 @@ class OllamaAnswerModel:
             options={"temperature": 0, "num_predict": 180},
             think=False,
         )
+        record_usage(response.prompt_eval_count, response.eval_count)
         try:
             return json.loads(response.message.content)
         except json.JSONDecodeError:

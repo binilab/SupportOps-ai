@@ -1,10 +1,10 @@
 # PROGRESS
 
 ## 현재 단계
-**Phase 5 — 완료 (주문 Tool Calling Workflow)**
+**Phase 6 — 완료 (읽기 전용 API 서비스)**
 
 ## 현재 상태
-로컬 Ollama의 네이티브 Tool Calling과 읽기 전용 주문·상품 조회, Python 환불·취소 판정을 하나의 흐름으로 연결했다. Gold의 Tool 필요 질문 11개에서 첫 Tool·인자·전체 Tool 순서·판정·보류가 모두 기대값과 일치했고, 답변 필수 사실도 11개 모두 포함했다(수동 검토). 질문당 중앙 시간은 0.759초였다. API와 실제 외부 작업 실행은 시작하지 않았다.
+FastAPI가 Phase 5의 읽기 전용 Agent를 제공한다. 합성 주문·상품은 명시적 스크립트로 PostgreSQL에 적재하고 SQLAlchemy로 조회한다. 실제 PostgreSQL/pgvector 환경의 통합 테스트와 로컬 Ollama를 연결한 HTTP 요청에서 주문·정책 답변을 확인했다. Gold 기반 답변 품질 수치는 Phase 4·5 결과를 유지한다. 실제 외부 작업 실행은 하지 않는다.
 
 ## 완료한 항목
 - [x] 프로젝트 범위 정의
@@ -47,9 +47,15 @@
 - [x] 답변의 Gold 필수 사실 11/11 수동 검토, 모델·데이터 해시와 latency 기록
 - [x] 미확인 하자/오배송·상품별 개별 조건, `used=true` 경계 테스트
 - [x] Gold 검증기 통과, pytest 20개 통과 (DB 미설정으로 통합 테스트 1개 건너뜀)
+- [x] FastAPI `/v1/answer`·`/health`, Pydantic 검증, 인용·Tool trace 응답 추가
+- [x] SQLAlchemy 요청별 PostgreSQL 조회 및 버전 관리된 합성 CSV 10개 주문·10개 상품의 멱등 적재
+- [x] DB/모델 장애 503, 입력 오류 422, 요청 ID와 지연 시간·Ollama 토큰 수 구조화 로그 확인
+- [x] 실제 PostgreSQL/pgvector에서 API·DB 통합 테스트와 기존 테스트 통과
+- [x] 실제 Ollama 주문·정책 질문과 Uvicorn HTTP 주문 요청에서 200 및 인용 확인
+- [x] Phase 6 실행·한계를 `docs/PHASE6_SERVICE.md`에 기록
 
 ## 현재 작업
-Phase 5 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
+Phase 6 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 
 ## Phase 0 완료 조건
 - [x] 제품 문제와 범위 문서화
@@ -93,12 +99,19 @@ Phase 5 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 - [x] Tool 선택·인자·최종 작업 성공률을 고정 Gold에서 평가
 - [x] 주문 누락·위치 정보 부족·미확인 하자·상품 상태 경계 테스트
 
+## Phase 6 완료 조건
+- [x] 기존 정책·주문 답변 경로를 제공하는 FastAPI 실행
+- [x] PostgreSQL의 합성 주문·상품을 SQLAlchemy로 조회
+- [x] API 입력·응답 검증과 DB/모델 장애 처리
+- [x] 실제 PostgreSQL/pgvector 통합 테스트와 실제 Ollama HTTP 확인
+- [x] 요청별 구조화 로그에 latency와 제공된 토큰 수 기록
+
 ## 다음 작업
-별도 요청이 있을 때 Phase 6을 시작한다.
+별도 요청이 있을 때 Phase 7을 시작한다.
 
 ## 아직 시작하지 않을 것
-- FastAPI
 - Docker 기반 실행 구성
+- GitHub Actions CI
 
 ## 막힌 사항
-없음. Phase 5의 Gold 11개는 개발 중 사용했으므로 결과의 일반화 한계는 `docs/PHASE5_AGENT.md`에 기록했다.
+없음. 로컬 PostgreSQL과 Ollama가 실행 환경에 필요하다. Phase 5 Gold 11개는 개발 중 사용했으므로 일반화 한계는 `docs/PHASE5_AGENT.md`에 기록했다.

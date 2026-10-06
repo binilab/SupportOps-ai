@@ -6,6 +6,7 @@ import csv
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Protocol
 
 
 def parse_bool(value: str) -> bool:
@@ -36,6 +37,14 @@ class Product:
     is_custom: bool
     is_hygiene: bool
     is_digital: bool
+
+
+class OrderProductStore(Protocol):
+    """The read-only records required by the support workflow."""
+
+    def get_order(self, order_id: str) -> Order | None: ...
+
+    def get_product(self, product_id: str) -> Product | None: ...
 
 
 class StructuredStore:

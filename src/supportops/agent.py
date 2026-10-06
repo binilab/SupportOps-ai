@@ -13,7 +13,8 @@ from ollama import Client
 from supportops.eligibility import Assessment, check_cancel_eligibility, check_refund_eligibility, customer_conditions, requires_special_review
 from supportops.lexical import PolicyChunk
 from supportops.rag import Citation, ORDER_ID_RE, PolicyRAG, RagAnswer
-from supportops.structured import Order, Product, StructuredStore
+from supportops.structured import Order, OrderProductStore, Product
+from supportops.usage import record_usage
 
 MODEL_ID = "qwen2.5:3b"
 DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
@@ -80,6 +81,7 @@ class OllamaOrderRouter:
             options={"temperature": 0, "num_predict": 120},
             think=False,
         )
+        record_usage(response.prompt_eval_count, response.eval_count)
         calls = response.message.tool_calls or []
         if len(calls) != 1:
             return None
@@ -92,7 +94,7 @@ class OllamaOrderRouter:
 class SupportAgent:
     def __init__(
         self,
-        store: StructuredStore,
+        store: OrderProductStore,
         router: OrderRouter,
         policy_chunks: list[PolicyChunk],
         policy_rag: PolicyRAG | None = None,
