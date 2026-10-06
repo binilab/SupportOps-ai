@@ -1,10 +1,10 @@
 # PROGRESS
 
 ## 현재 단계
-**Phase 7 — 완료 (로컬 실행과 CI)**
+**Phase 8 — 완료 (포트폴리오 패키징)**
 
 ## 현재 상태
-Docker Compose에서 PostgreSQL 준비·합성 데이터 적재·FastAPI 시작을 재현하고, 호스트 Ollama로 주문·정책 HTTP 답변을 확인했다. GitHub Actions에서 Gold 검증 및 PostgreSQL/pgvector 통합 테스트가 통과했다. 로컬에서도 같은 테스트 25개가 통과했다.
+README에 실제 구현 구조, 고정 Gold 평가표, 실패 분석, 실행 절차와 한계를 한곳에 정리했다. Compose API에서 직접 받은 주문·정책·보류 응답 3건을 원본 JSON과 GIF로 남기고 면접 질문·답변을 작성했다. Gold 검증은 통과했고, 로컬 pytest는 DB 미설정으로 23개 통과·2개 건너뜀이다. Phase 7 원격 CI에서는 DB 포함 25개가 통과했다.
 
 ## 완료한 항목
 - [x] 프로젝트 범위 정의
@@ -59,9 +59,13 @@ Docker Compose에서 PostgreSQL 준비·합성 데이터 적재·FastAPI 시작�
 - [x] GitHub Actions에 Gold 검증·실제 DB 통합 테스트 구성
 - [x] 로컬 Gold 40개 검증과 실제 PostgreSQL/pgvector 포함 pytest 25개 통과
 - [x] 원격 GitHub Actions CI 성공 (`f11584f`, 실행 37457093395)
+- [x] Phase 8 README 아키텍처 다이어그램과 검색·RAG·Tool 평가표, 실패·한계 분석 정리
+- [x] 실제 Compose API 응답 3건의 원본 JSON과 GIF 데모 작성
+- [x] 주요 기술 결정과 면접 질문·답변 연결, 구현하지 않은 프레임워크·Reranker 표현 정정
+- [x] README·데모 링크, GIF 프레임, Gold 검증기와 pytest 확인 (23개 통과·DB 통합 2개 건너뜀)
 
 ## 현재 작업
-Phase 7 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
+Phase 8 종료. 기능 추가를 멈추고 포트폴리오를 지원 자료로 사용할 수 있다.
 
 ## Phase 0 완료 조건
 - [x] 제품 문제와 범위 문서화
@@ -118,11 +122,18 @@ Phase 7 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 - [x] 원격 GitHub Actions CI 통과
 - [x] 실행 절차와 확인한 실패·경계 사례 기록
 
+## Phase 8 완료 조건
+- [x] 실제 구현 범위를 설명하는 README와 아키텍처 다이어그램
+- [x] 원본 보고서와 일치하는 검색·답변·Tool 평가표
+- [x] 남은 실패와 개발 Gold의 일반화 한계 명시
+- [x] 주요 기술 결정, 재생 GIF와 실제 API 응답 원본, 면접 질문·답변 연결
+- [x] Gold 검증기와 pytest 실행, GitHub Actions CI 경로 유지
+
 ## 다음 작업
-별도 요청이 있을 때 Phase 8을 시작한다.
+채용 지원 시 README·데모를 사용한다. 추가 기능이나 범위 확장은 별도 요청이 있을 때 결정한다.
 
 ## 아직 시작하지 않을 것
-- Phase 8 포트폴리오 패키징
+- 별도 요청 없는 새 기능 구현
 
 ## 막힌 사항
-없음. 로컬 Compose 데모에는 호스트 Ollama와 모델 다운로드가 필요하다.
+없음. 로컬 Compose 데모에는 호스트 Ollama와 모델 다운로드가 필요하다. 현재 Gold는 개발 중 사용됐으므로 별도 held-out 일반화 성능은 측정하지 않았다.

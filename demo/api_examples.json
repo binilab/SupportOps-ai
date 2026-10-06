@@ -1,0 +1,83 @@
+{
+  "captured_at_utc": "2026-10-06T12:14:12+00:00",
+  "source": "Docker Compose FastAPI POST /v1/answer with local Ollama and synthetic PostgreSQL",
+  "cases": [
+    {
+      "id": "order_cancel",
+      "request": {
+        "question": "ORD-1008 지금 취소 가능해?",
+        "as_of": "2026-10-05"
+      },
+      "response": {
+        "answer": "ORD-1008: 주문 상태는 PAID이며 전체 취소 요청이 가능합니다. 실제 취소는 실행하지 않았습니다.",
+        "abstained": false,
+        "outcome": "cancel_request_allowed",
+        "citations": [
+          {
+            "policy_id": "policy_cancel_v1",
+            "chunk_id": "policy_cancel_v1::01",
+            "source_path": "data/raw/policies/cancellation_policy.md"
+          }
+        ],
+        "trace": [
+          {
+            "name": "get_order",
+            "arguments": {
+              "order_id": "ORD-1008"
+            },
+            "result": "status=PAID;product_id=P-1008;delivered_at=None;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+          },
+          {
+            "name": "check_cancel_eligibility",
+            "arguments": {
+              "order_id": "ORD-1008",
+              "special_review_requested": false
+            },
+            "result": "cancel_request_allowed"
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing_order",
+      "request": {
+        "question": "ORD-9999 취소 가능해?",
+        "as_of": "2026-10-05"
+      },
+      "response": {
+        "answer": "해당 주문을 찾을 수 없어 상태를 확인할 수 없습니다.",
+        "abstained": true,
+        "outcome": "order_not_found",
+        "citations": [],
+        "trace": [
+          {
+            "name": "get_order",
+            "arguments": {
+              "order_id": "ORD-9999"
+            },
+            "result": "not_found"
+          }
+        ]
+      }
+    },
+    {
+      "id": "policy_shipping",
+      "request": {
+        "question": "제주도는 배송비가 더 붙어?"
+      },
+      "response": {
+        "answer": "제주 지역은 기본 배송비와 별도로 3,000원의 추가 배송비가 부과됩니다.",
+        "abstained": false,
+        "outcome": "policy_answer",
+        "citations": [
+          {
+            "policy_id": "policy_shipping_v1",
+            "chunk_id": "policy_shipping_v1::02",
+            "source_path": "data/raw/policies/shipping_policy.md"
+          }
+        ],
+        "trace": []
+      }
+    }
+  ]
+}

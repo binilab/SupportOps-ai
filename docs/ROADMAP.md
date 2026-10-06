@@ -2,18 +2,18 @@
 
 이 프로젝트는 채용 공고에서 자주 요구되는 Applied AI 도구를 여러 개 다루되, **실제 필요가 생기는 단계에서만** 도입한다.
 
-## v1 완료 시 핵심 기술 스택
+## v1의 실제 핵심 기술 스택
 - Python, pytest
 - BM25 Lexical Retrieval
 - sentence-transformers / Embedding
 - PostgreSQL + pgvector
-- LangChain: RAG 구성/통합
-- LangGraph: Tool Calling Workflow
 - FastAPI + Pydantic
 - SQLAlchemy: 애플리케이션 DB 접근
 - Docker / Docker Compose
 - GitHub Actions CI
 - 구조화 로깅 + 필요 시 추적/관측성 도구 1개
+
+LangChain과 LangGraph는 Phase 4·5에서 필요성을 검토했으나 현재 단일 검색·생성 경로와 결정적 후속 Tool 순서를 단순화하지 않아 도입하지 않았다. 판단 근거는 `DECISIONS.md`의 D-009·D-010에 남겼다.
 
 처음부터 모든 의존성을 설치하지 않는다. 실제 사용하는 Phase에서 추가한다.
 
