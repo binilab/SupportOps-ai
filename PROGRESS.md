@@ -1,10 +1,10 @@
 # PROGRESS
 
 ## 현재 단계
-**Phase 6 — 완료 (읽기 전용 API 서비스)**
+**Phase 7 — 진행 중 (로컬 실행과 CI 확인)**
 
 ## 현재 상태
-FastAPI가 Phase 5의 읽기 전용 Agent를 제공한다. 합성 주문·상품은 명시적 스크립트로 PostgreSQL에 적재하고 SQLAlchemy로 조회한다. 실제 PostgreSQL/pgvector 환경의 통합 테스트와 로컬 Ollama를 연결한 HTTP 요청에서 주문·정책 답변을 확인했다. Gold 기반 답변 품질 수치는 Phase 4·5 결과를 유지한다. 실제 외부 작업 실행은 하지 않는다.
+Docker Compose에서 PostgreSQL 준비·합성 데이터 적재·FastAPI 시작을 재현하고, 호스트 Ollama로 주문·정책 HTTP 답변을 확인했다. GitHub Actions에 Gold 검증 및 PostgreSQL/pgvector 통합 테스트를 구성했다. 로컬에서 같은 테스트 25개가 통과했으며 원격 CI 실행 결과를 확인 중이다.
 
 ## 완료한 항목
 - [x] 프로젝트 범위 정의
@@ -53,9 +53,14 @@ FastAPI가 Phase 5의 읽기 전용 Agent를 제공한다. 합성 주문·상품
 - [x] 실제 PostgreSQL/pgvector에서 API·DB 통합 테스트와 기존 테스트 통과
 - [x] 실제 Ollama 주문·정책 질문과 Uvicorn HTTP 주문 요청에서 200 및 인용 확인
 - [x] Phase 6 실행·한계를 `docs/PHASE6_SERVICE.md`에 기록
+- [x] CPU 전용 API Docker 이미지와 PostgreSQL/pgvector Compose 실행 구성
+- [x] Compose에서 DB 준비 → 합성 CSV 적재 → API 시작과 주문·정책 HTTP 200 확인
+- [x] `.env.example`, 모델 캐시 볼륨, 로컬 실행·장애 문서 추가
+- [x] GitHub Actions에 Gold 검증·실제 DB 통합 테스트 구성
+- [x] 로컬 Gold 40개 검증과 실제 PostgreSQL/pgvector 포함 pytest 25개 통과
 
 ## 현재 작업
-Phase 6 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
+Phase 7의 원격 CI 결과를 확인하고 실패 시 수정한다.
 
 ## Phase 0 완료 조건
 - [x] 제품 문제와 범위 문서화
@@ -106,12 +111,17 @@ Phase 6 종료. 후속 단계는 별도 지시 전까지 시작하지 않는다.
 - [x] 실제 PostgreSQL/pgvector 통합 테스트와 실제 Ollama HTTP 확인
 - [x] 요청별 구조화 로그에 latency와 제공된 토큰 수 기록
 
+## Phase 7 완료 조건
+- [x] 깨끗한 Compose 로컬 실행에서 DB 적재와 주문·정책 API 확인
+- [x] Gold 검증기와 DB 포함 자동 테스트 통과
+- [ ] 원격 GitHub Actions CI 통과
+- [x] 실행 절차와 확인한 실패·경계 사례 기록
+
 ## 다음 작업
-별도 요청이 있을 때 Phase 7을 시작한다.
+원격 CI가 통과하면 Phase 7을 완료 처리한다. Phase 8은 별도 요청 전까지 시작하지 않는다.
 
 ## 아직 시작하지 않을 것
-- Docker 기반 실행 구성
-- GitHub Actions CI
+- Phase 8 포트폴리오 패키징
 
 ## 막힌 사항
-없음. 로컬 PostgreSQL과 Ollama가 실행 환경에 필요하다. Phase 5 Gold 11개는 개발 중 사용했으므로 일반화 한계는 `docs/PHASE5_AGENT.md`에 기록했다.
+원격 CI 결과 확인 중. 로컬 Compose 데모에는 호스트 Ollama와 모델 다운로드가 필요하다.

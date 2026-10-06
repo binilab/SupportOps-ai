@@ -1,0 +1,50 @@
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg17
+    environment:
+      POSTGRES_DB: supportops
+      POSTGRES_USER: supportops
+      POSTGRES_PASSWORD: ${SUPPORTOPS_DB_PASSWORD:?Set SUPPORTOPS_DB_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supportops -d supportops"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  init:
+    image: supportops-ai:local
+    build: .
+    command: ["python", "scripts/init_database.py"]
+    environment:
+      SUPPORTOPS_DATABASE_URL: postgresql://supportops:${SUPPORTOPS_DB_PASSWORD:?Set SUPPORTOPS_DB_PASSWORD in .env}@db:5432/supportops
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: supportops-ai:local
+    build: .
+    environment:
+      SUPPORTOPS_DATABASE_URL: postgresql://supportops:${SUPPORTOPS_DB_PASSWORD:?Set SUPPORTOPS_DB_PASSWORD in .env}@db:5432/supportops
+      OLLAMA_HOST: http://host.docker.internal:11434
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 127.0.0.1:8000:8000
+    volumes:
+      - model_cache:/home/supportops/.cache/huggingface
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  db_data:
+  model_cache:
