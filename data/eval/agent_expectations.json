@@ -1,0 +1,13 @@
+{
+  "eval_0011": {"intent": "refund", "outcome": "refund_request_allowed"},
+  "eval_0012": {"intent": "refund", "outcome": "resale_damage"},
+  "eval_0013": {"intent": "cancel", "outcome": "custom_production_started"},
+  "eval_0014": {"intent": "cancel", "outcome": "cancel_request_allowed"},
+  "eval_0015": {"intent": "shipping", "outcome": "tracking_unavailable"},
+  "eval_0016": {"intent": "refund", "outcome": "hygiene_seal_opened"},
+  "eval_0017": {"intent": "refund", "outcome": "digital_redeemed"},
+  "eval_0018": {"intent": "refund", "outcome": "order_not_found"},
+  "eval_0031": {"intent": "cancel", "outcome": "cancel_request_allowed"},
+  "eval_0033": {"intent": "cancel", "outcome": "cancel_request_allowed"},
+  "eval_0035": {"intent": "refund", "outcome": "refund_request_allowed"}
+}

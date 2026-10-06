@@ -1,0 +1,6 @@
+{
+  "report_sha256": "b1d5bc85daea9777ac3c8dd69a2299a509c331287871d675647ced8f728452f2",
+  "review_scope": "All 11 tool-required Gold questions. The answer was compared with expected_facts, tool trace, structured CSV values, and cited policy sections. Success requires the expected decision or justified abstention and no missing material fact.",
+  "incorrect_answer_ids": [],
+  "notes": "One reviewer checked the fixed Gold output. The same Gold cases were used during implementation, so this is a development evaluation, not held-out generalization evidence. No external action was executed."
+}

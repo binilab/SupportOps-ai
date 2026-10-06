@@ -1,0 +1,719 @@
+{
+  "model": "qwen2.5:3b",
+  "model_digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b",
+  "ollama_python_version": "0.6.3",
+  "evaluation_date": "2026-10-05",
+  "gold_sha256": "aa7988d1364a4a3e8020845fe761cbfb545e074d02b5cba55d31a0d2248c5b6c",
+  "policy_corpus_sha256": "7d336e6ee69406f488f0f9677be34adf5e8930193028f0a81f3fcb2f51e4a1ce",
+  "agent_expectations_sha256": "4c5b761fc1f64db9f7723f4f022843c90b890c5e412eab3b9019369d47e6494b",
+  "orders_sha256": "382383cc1a68882697fbc8b61e845cceb8074c65f9b8444367622e16c69525ad",
+  "products_sha256": "14323cc69be3ca12abecf3e1f9b20e137223176d9efc6a4a01e2dc1a5b5f57d7",
+  "case_count": 11,
+  "initial_tool_accuracy": 1.0,
+  "argument_accuracy": 1.0,
+  "tool_sequence_accuracy": 1.0,
+  "outcome_accuracy": 1.0,
+  "abstention_accuracy": 1.0,
+  "workflow_success_rate": 1.0,
+  "latency_ms_median": 758.675,
+  "latency_ms_p95": 2898.752792,
+  "cases": [
+    {
+      "id": "eval_0011",
+      "question": "2026-10-05 기준 ORD-1001 미사용 상품의 구성품과 사은품이 모두 있는데 단순 변심 환불 신청할 수 있어?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_refund_eligibility"
+      ],
+      "expected_intent": "refund",
+      "expected_outcome": "refund_request_allowed",
+      "expected_answerable": true,
+      "expected_facts": [
+        "ORD-1001은 일반 상품 P-1001이며 used=false, delivered_at=2026-10-01",
+        "구성품/사은품이 있고 2026-10-05는 배송 완료일 다음 날부터 7일 이내이므로 단순 변심 환불 신청 가능"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1001",
+          "intent": "refund"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1001"
+          },
+          "result": "status=DELIVERED;product_id=P-1001;delivered_at=2026-10-01;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1001"
+          },
+          "result": "is_custom=False;is_hygiene=False;is_digital=False"
+        },
+        {
+          "name": "check_refund_eligibility",
+          "arguments": {
+            "order_id": "ORD-1001",
+            "product_id": "P-1001",
+            "as_of": "2026-10-05",
+            "components_confirmed": true,
+            "resale_damage_reported": false,
+            "special_review_requested": false
+          },
+          "result": "refund_request_allowed"
+        }
+      ],
+      "answer": "ORD-1001 주문 상품 베이직 코튼 셔츠(P-1001): 배송 완료일이 2026-10-01이고 기록상 미사용입니다. 질문에서 구성품과 사은품 보존을 전제로 했으며 신청 기간 내이므로 단순 변심 환불 신청이 가능합니다. 최종 환불은 반품 검수 후 진행됩니다.",
+      "abstained": false,
+      "outcome": "refund_request_allowed",
+      "citations": [
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::01",
+          "source_path": "data/raw/policies/refund_policy.md"
+        },
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::02",
+          "source_path": "data/raw/policies/refund_policy.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 2898.752792,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0012",
+      "question": "ORD-1007 셔츠를 착용해 오염됐고 재판매가 어려운데 단순 변심 환불할 수 있어?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_refund_eligibility"
+      ],
+      "expected_intent": "refund",
+      "expected_outcome": "resale_damage",
+      "expected_answerable": true,
+      "expected_facts": [
+        "착용·오염 등으로 재판매가 어려운 상품은 단순 변심 환불 불가",
+        "ORD-1007 used=true이며 질문에서 오염과 재판매 불가 상태를 명시"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1007",
+          "intent": "refund"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1007"
+          },
+          "result": "status=DELIVERED;product_id=P-1001;delivered_at=2026-10-01;used=True;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1001"
+          },
+          "result": "is_custom=False;is_hygiene=False;is_digital=False"
+        },
+        {
+          "name": "check_refund_eligibility",
+          "arguments": {
+            "order_id": "ORD-1007",
+            "product_id": "P-1001",
+            "as_of": "2026-10-05",
+            "components_confirmed": false,
+            "resale_damage_reported": true,
+            "special_review_requested": false
+          },
+          "result": "resale_damage"
+        }
+      ],
+      "answer": "ORD-1007 주문 상품 베이직 코튼 셔츠(P-1001): 주문 기록에 사용 이력이 있고 질문에서 착용·오염으로 재판매가 어렵다고 했으므로 단순 변심 환불 신청이 불가합니다.",
+      "abstained": false,
+      "outcome": "resale_damage",
+      "citations": [
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::04",
+          "source_path": "data/raw/policies/refund_policy.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 803.531083,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0013",
+      "question": "ORD-1003 주문제작 컵을 단순 변심으로 취소할 수 있어?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_cancel_eligibility"
+      ],
+      "expected_intent": "cancel",
+      "expected_outcome": "custom_production_started",
+      "expected_answerable": true,
+      "expected_facts": [
+        "주문제작 상품은 제작 시작 후 일반 취소 불가",
+        "ORD-1003 custom_production_started=true"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1003",
+          "intent": "cancel"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1003"
+          },
+          "result": "status=PREPARING;product_id=P-1003;delivered_at=None;used=False;seal_opened=False;custom_production_started=True;digital_redeemed=False"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1003"
+          },
+          "result": "is_custom=True;is_hygiene=False;is_digital=False"
+        },
+        {
+          "name": "check_cancel_eligibility",
+          "arguments": {
+            "order_id": "ORD-1003",
+            "special_review_requested": false
+          },
+          "result": "custom_production_started"
+        }
+      ],
+      "answer": "ORD-1003은 주문제작 상품의 제작이 시작되어 일반 취소 요청이 불가합니다.",
+      "abstained": false,
+      "outcome": "custom_production_started",
+      "citations": [
+        {
+          "policy_id": "policy_cancel_v1",
+          "chunk_id": "policy_cancel_v1::02",
+          "source_path": "data/raw/policies/cancellation_policy.md"
+        },
+        {
+          "policy_id": "policy_product_restrictions_v1",
+          "chunk_id": "policy_product_restrictions_v1::02",
+          "source_path": "data/raw/policies/product_restrictions.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 773.777333,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0014",
+      "question": "ORD-1008 지금 취소 가능해?",
+      "expected_tools": [
+        "get_order",
+        "check_cancel_eligibility"
+      ],
+      "expected_intent": "cancel",
+      "expected_outcome": "cancel_request_allowed",
+      "expected_answerable": true,
+      "expected_facts": [
+        "PAID 상태는 취소 요청 가능",
+        "ORD-1008 status=PAID"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "intent": "cancel",
+          "order_id": "ORD-1008"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1008"
+          },
+          "result": "status=PAID;product_id=P-1008;delivered_at=None;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "check_cancel_eligibility",
+          "arguments": {
+            "order_id": "ORD-1008",
+            "special_review_requested": false
+          },
+          "result": "cancel_request_allowed"
+        }
+      ],
+      "answer": "ORD-1008: 주문 상태는 PAID이며 전체 취소 요청이 가능합니다. 실제 취소는 실행하지 않았습니다.",
+      "abstained": false,
+      "outcome": "cancel_request_allowed",
+      "citations": [
+        {
+          "policy_id": "policy_cancel_v1",
+          "chunk_id": "policy_cancel_v1::01",
+          "source_path": "data/raw/policies/cancellation_policy.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 812.179292,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0015",
+      "question": "ORD-1002 배송 어디쯤 왔어?",
+      "expected_tools": [
+        "get_order"
+      ],
+      "expected_intent": "shipping",
+      "expected_outcome": "tracking_unavailable",
+      "expected_answerable": false,
+      "expected_facts": [
+        "ORD-1002 status=SHIPPED",
+        "주문 데이터에 송장번호와 택배사 위치가 없어 정확한 현재 위치는 확인 불가"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1002",
+          "intent": "shipping"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1002"
+          },
+          "result": "status=SHIPPED;product_id=P-1002;delivered_at=None;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        }
+      ],
+      "answer": "ORD-1002의 주문 상태는 SHIPPED입니다. 송장번호와 택배사 위치 정보가 없어 정확한 현재 위치는 확인할 수 없습니다.",
+      "abstained": true,
+      "outcome": "tracking_unavailable",
+      "citations": [
+        {
+          "policy_id": "policy_shipping_v1",
+          "chunk_id": "policy_shipping_v1::04",
+          "source_path": "data/raw/policies/shipping_policy.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 758.675,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0016",
+      "question": "ORD-1004 마스크 포장을 뜯었는데 단순 변심 환불돼?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_refund_eligibility"
+      ],
+      "expected_intent": "refund",
+      "expected_outcome": "hygiene_seal_opened",
+      "expected_answerable": true,
+      "expected_facts": [
+        "위생 상품 포장 개봉 시 단순 변심 환불 불가",
+        "ORD-1004 seal_opened=true"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1004",
+          "intent": "refund"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1004"
+          },
+          "result": "status=DELIVERED;product_id=P-1004;delivered_at=2026-10-02;used=False;seal_opened=True;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1004"
+          },
+          "result": "is_custom=False;is_hygiene=True;is_digital=False"
+        },
+        {
+          "name": "check_refund_eligibility",
+          "arguments": {
+            "order_id": "ORD-1004",
+            "product_id": "P-1004",
+            "as_of": "2026-10-05",
+            "components_confirmed": false,
+            "resale_damage_reported": false,
+            "special_review_requested": false
+          },
+          "result": "hygiene_seal_opened"
+        }
+      ],
+      "answer": "ORD-1004 주문 상품 밀봉 페이스 마스크 10매(P-1004): 위생 상품의 보호 포장이 개봉되어 단순 변심 환불 신청이 불가합니다.",
+      "abstained": false,
+      "outcome": "hygiene_seal_opened",
+      "citations": [
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::04",
+          "source_path": "data/raw/policies/refund_policy.md"
+        },
+        {
+          "policy_id": "policy_product_restrictions_v1",
+          "chunk_id": "policy_product_restrictions_v1::03",
+          "source_path": "data/raw/policies/product_restrictions.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 741.494,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0017",
+      "question": "ORD-1005 디지털 코드 이미 썼는데 단순 변심 환불 가능?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_refund_eligibility"
+      ],
+      "expected_intent": "refund",
+      "expected_outcome": "digital_redeemed",
+      "expected_answerable": true,
+      "expected_facts": [
+        "사용된 디지털 코드/다운로드는 단순 변심 환불 불가",
+        "ORD-1005 digital_redeemed=true"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1005",
+          "intent": "refund"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1005"
+          },
+          "result": "status=DELIVERED;product_id=P-1005;delivered_at=2026-10-01;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=True"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1005"
+          },
+          "result": "is_custom=False;is_hygiene=False;is_digital=True"
+        },
+        {
+          "name": "check_refund_eligibility",
+          "arguments": {
+            "order_id": "ORD-1005",
+            "product_id": "P-1005",
+            "as_of": "2026-10-05",
+            "components_confirmed": false,
+            "resale_damage_reported": false,
+            "special_review_requested": false
+          },
+          "result": "digital_redeemed"
+        }
+      ],
+      "answer": "ORD-1005 주문 상품 디지털 기프트 코드 5만원(P-1005): 디지털 코드가 사용되어 단순 변심 환불 신청이 불가합니다.",
+      "abstained": false,
+      "outcome": "digital_redeemed",
+      "citations": [
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::04",
+          "source_path": "data/raw/policies/refund_policy.md"
+        },
+        {
+          "policy_id": "policy_product_restrictions_v1",
+          "chunk_id": "policy_product_restrictions_v1::04",
+          "source_path": "data/raw/policies/product_restrictions.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 739.830834,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0018",
+      "question": "ORD-9999 환불돼?",
+      "expected_tools": [
+        "get_order"
+      ],
+      "expected_intent": "refund",
+      "expected_outcome": "order_not_found",
+      "expected_answerable": false,
+      "expected_facts": [
+        "해당 주문을 찾을 수 없으면 환불 가능 여부를 확정할 수 없음"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-9999",
+          "intent": "refund"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-9999"
+          },
+          "result": "not_found"
+        }
+      ],
+      "answer": "해당 주문을 찾을 수 없어 상태를 확인할 수 없습니다.",
+      "abstained": true,
+      "outcome": "order_not_found",
+      "citations": [],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 747.333042,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0031",
+      "question": "ORD-1009 주문 전체 취소 신청할 수 있어?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_cancel_eligibility"
+      ],
+      "expected_intent": "cancel",
+      "expected_outcome": "cancel_request_allowed",
+      "expected_answerable": true,
+      "expected_facts": [
+        "ORD-1009 status=PREPARING",
+        "P-1009는 주문제작 상품이 아니므로 전체 취소 요청 가능"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1009",
+          "intent": "cancel"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1009"
+          },
+          "result": "status=PREPARING;product_id=P-1009;delivered_at=None;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1009"
+          },
+          "result": "is_custom=False;is_hygiene=False;is_digital=False"
+        },
+        {
+          "name": "check_cancel_eligibility",
+          "arguments": {
+            "order_id": "ORD-1009",
+            "special_review_requested": false
+          },
+          "result": "cancel_request_allowed"
+        }
+      ],
+      "answer": "ORD-1009: 상품은 세라믹 접시 세트(P-1009)입니다. 주문제작 상품이 아닙니다. 주문 상태는 PREPARING이며 전체 취소 요청이 가능합니다. 실제 취소는 실행하지 않았습니다.",
+      "abstained": false,
+      "outcome": "cancel_request_allowed",
+      "citations": [
+        {
+          "policy_id": "policy_cancel_v1",
+          "chunk_id": "policy_cancel_v1::01",
+          "source_path": "data/raw/policies/cancellation_policy.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 753.339959,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0033",
+      "question": "야, ORD-1008 취쏘 되냐?? 빨리 알려줘!",
+      "expected_tools": [
+        "get_order",
+        "check_cancel_eligibility"
+      ],
+      "expected_intent": "cancel",
+      "expected_outcome": "cancel_request_allowed",
+      "expected_answerable": true,
+      "expected_facts": [
+        "ORD-1008 status=PAID",
+        "PAID 상태는 취소 요청 가능"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1008",
+          "intent": "cancel"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1008"
+          },
+          "result": "status=PAID;product_id=P-1008;delivered_at=None;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "check_cancel_eligibility",
+          "arguments": {
+            "order_id": "ORD-1008",
+            "special_review_requested": false
+          },
+          "result": "cancel_request_allowed"
+        }
+      ],
+      "answer": "ORD-1008: 주문 상태는 PAID이며 전체 취소 요청이 가능합니다. 실제 취소는 실행하지 않았습니다.",
+      "abstained": false,
+      "outcome": "cancel_request_allowed",
+      "citations": [
+        {
+          "policy_id": "policy_cancel_v1",
+          "chunk_id": "policy_cancel_v1::01",
+          "source_path": "data/raw/policies/cancellation_policy.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 747.620667,
+      "workflow_success": true
+    },
+    {
+      "id": "eval_0035",
+      "question": "2026-10-05 기준 ORD-1010 바디 패치를 뜯지 않았고 구성품도 모두 있는데 단순 변심 환불 신청 가능해?",
+      "expected_tools": [
+        "get_order",
+        "get_product",
+        "check_refund_eligibility"
+      ],
+      "expected_intent": "refund",
+      "expected_outcome": "refund_request_allowed",
+      "expected_answerable": true,
+      "expected_facts": [
+        "ORD-1010은 위생 상품 P-1010이며 seal_opened=false, used=false, delivered_at=2026-10-03",
+        "구성품이 있고 미개봉 상태이며 배송 완료일 다음 날부터 7일 이내라 단순 변심 환불 신청 가능"
+      ],
+      "router_request": {
+        "name": "get_order",
+        "arguments": {
+          "order_id": "ORD-1010",
+          "intent": "refund"
+        }
+      },
+      "trace": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-1010"
+          },
+          "result": "status=DELIVERED;product_id=P-1010;delivered_at=2026-10-03;used=False;seal_opened=False;custom_production_started=False;digital_redeemed=False"
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "P-1010"
+          },
+          "result": "is_custom=False;is_hygiene=True;is_digital=False"
+        },
+        {
+          "name": "check_refund_eligibility",
+          "arguments": {
+            "order_id": "ORD-1010",
+            "product_id": "P-1010",
+            "as_of": "2026-10-05",
+            "components_confirmed": true,
+            "resale_damage_reported": false,
+            "special_review_requested": false
+          },
+          "result": "refund_request_allowed"
+        }
+      ],
+      "answer": "ORD-1010 주문 상품 밀봉 바디 패치(P-1010): 배송 완료일이 2026-10-03이고 기록상 미사용입니다. 위생 상품의 보호 포장도 미개봉입니다. 질문에서 구성품 보존을 전제로 했으며 신청 기간 내이므로 단순 변심 환불 신청이 가능합니다. 최종 환불은 반품 검수 후 진행됩니다.",
+      "abstained": false,
+      "outcome": "refund_request_allowed",
+      "citations": [
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::01",
+          "source_path": "data/raw/policies/refund_policy.md"
+        },
+        {
+          "policy_id": "policy_refund_v1",
+          "chunk_id": "policy_refund_v1::02",
+          "source_path": "data/raw/policies/refund_policy.md"
+        },
+        {
+          "policy_id": "policy_product_restrictions_v1",
+          "chunk_id": "policy_product_restrictions_v1::03",
+          "source_path": "data/raw/policies/product_restrictions.md"
+        }
+      ],
+      "initial_tool_correct": true,
+      "arguments_correct": true,
+      "tool_sequence_correct": true,
+      "outcome_correct": true,
+      "abstention_correct": true,
+      "latency_ms": 797.831708,
+      "workflow_success": true
+    }
+  ]
+}
