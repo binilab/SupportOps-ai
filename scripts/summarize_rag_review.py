@@ -1,4 +1,5 @@
-"""Summarize a manually checked Phase 4 response report."""
+"""수동 검수 결과를 RAG 보고서와 대조해 정확도, 근거 충실성, 인용 정확도를 요약한다.
+실행: python3 scripts/summarize_rag_review.py (reports/phase4_rag_local.json, reports/phase4_review.json 사용)"""
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ REVIEW_PATH = ROOT / "reports" / "phase4_review.json"
 
 
 def main() -> int:
+    """검수 파일을 검증하고 정책 답변 정확도와 근거/인용 지표를 계산해 출력한다."""
     raw = REPORT_PATH.read_bytes()
     report = json.loads(raw)
     review = json.loads(REVIEW_PATH.read_text(encoding="utf-8"))
@@ -25,6 +27,7 @@ def main() -> int:
     bad_citations = set(review["incorrect_citation_ids"])
     if not wrong <= expected or not ungrounded <= answered or not bad_citations <= answered:
         raise ValueError("Review contains an ID outside its scoring population")
+    # 답해야 하는데 보류한 문항은 오답으로 검수 목록에 반드시 포함되어야 한다.
     if expected - answered - wrong:
         raise ValueError("Abstained positive cases must be counted as incorrect answers")
     result = {

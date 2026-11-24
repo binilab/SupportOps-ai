@@ -1,4 +1,9 @@
-"""Phase 4 policy-only grounded answer generation."""
+"""정책 질문에 근거 기반 답변을 만든다 (RAG).
+
+흐름: 범위 밖 질문 거르기 → 정책 검색 → LLM 답변 생성 → 인용 검증.
+LLM이 근거로 받은 청크 ID만 인용할 수 있고, 형식이 틀리거나 인용이 맞지 않으면
+답변을 내보내지 않고 보류(abstain)한다. 틀린 답보다 "확인할 수 없다"가 낫다는 원칙이다.
+"""
 
 from __future__ import annotations
 
@@ -14,10 +19,12 @@ from supportops.lexical import PolicyChunk, PolicyHit
 from supportops.usage import record_usage
 
 ORDER_ID_RE = re.compile(r"\bORD-\d+\b", re.IGNORECASE)
+# 정책 문서로 답할 수 없는 질문 유형. LLM에 보내기 전에 규칙으로 먼저 거른다.
 PERSONAL_CONTACT_RE = re.compile(r"(?:직원|타인|다른\s*사람).*?(?:개인|사적).*?(?:연락처|휴대폰|전화번호|이메일)")
 PERSONAL_COUPON_AMOUNT_RE = re.compile(r"(?:내|나의).*?쿠폰.*?(?:최소.*?금액|금액.*?얼마|얼마)")
 MODEL_ID = "gemma4:12b"
 RETRIEVAL_K = 3
+# Ollama의 structured output 기능으로 이 JSON 형식을 강제한다.
 ANSWER_SCHEMA = {
     "type": "object",
     "properties": {
@@ -41,6 +48,8 @@ JSON 형식으로만 답하세요."""
 
 @dataclass(frozen=True)
 class Citation:
+    """답변에 붙는 인용 한 건. 원문 파일과 섹션까지 추적할 수 있다."""
+
     policy_id: str
     chunk_id: str
     source_path: str
@@ -48,6 +57,8 @@ class Citation:
 
 @dataclass(frozen=True)
 class RagAnswer:
+    """RAG 결과. 보류했으면 abstained=True이고 reason에 이유 코드가 들어간다."""
+
     answer: str
     abstained: bool
     citations: tuple[Citation, ...]
@@ -55,22 +66,33 @@ class RagAnswer:
 
 
 class PolicyRetriever(Protocol):
+    """정책 검색기 인터페이스 (BM25, 임베딩, 하이브리드 모두 해당)."""
+
     chunks: list[PolicyChunk]
 
     def search(self, query: str, k: int = 5) -> list[PolicyHit]: ...
 
 
 class AnswerModel(Protocol):
+    """답변 생성 모델 인터페이스. 테스트에서는 가짜 모델로 바꿔 끼운다."""
+
     def generate(self, question: str, evidence: list[PolicyChunk]) -> dict: ...
 
 
 class OllamaAnswerModel:
+    """로컬 Ollama 모델로 답변을 생성한다. 모델과 주소는 환경 변수로 바꿀 수 있다."""
+
     def __init__(self, model: str | None = None, host: str | None = None) -> None:
         self.model = model or os.environ.get("SUPPORTOPS_RAG_MODEL", MODEL_ID)
         self.client = Client(host=host or os.environ.get("OLLAMA_HOST"), timeout=120)
 
     def generate(self, question: str, evidence: list[PolicyChunk]) -> dict:
-        """Request a short structured answer from the local Ollama model."""
+        """근거 청크와 질문을 넣어 JSON 형식의 짧은 답변을 받는다.
+
+        재현성을 위해 temperature=0으로 고정한다. JSON 파싱에 실패하면 빈 dict를 돌려주고,
+        호출한 쪽(PolicyRAG)에서 형식 오류로 보고 답변을 보류한다.
+        """
+        # 청크마다 ID를 붙여서 넘겨야 모델이 어떤 근거를 썼는지 ID로 답할 수 있다.
         context = "\n\n".join(
             f"[청크 ID: {chunk.chunk_id}; 정책 ID: {chunk.policy_id}; {chunk.title} / {chunk.heading}]\n{chunk.text}"
             for chunk in evidence
@@ -93,6 +115,8 @@ class OllamaAnswerModel:
 
 
 class PolicyRAG:
+    """정책 검색 + 답변 생성 + 인용 검증을 묶은 파이프라인."""
+
     def __init__(self, retriever: PolicyRetriever, model: AnswerModel) -> None:
         self.retriever = retriever
         self.model = model
@@ -101,7 +125,13 @@ class PolicyRAG:
             self.chunks_by_policy.setdefault(chunk.policy_id, []).append(chunk)
 
     def answer(self, question: str) -> RagAnswer:
-        """Retrieve policy evidence, generate, and validate citations before returning."""
+        """정책 질문에 답한다. 아래 경우에는 답변 대신 보류 결과를 돌려준다.
+
+        - 주문 ID가 있거나 개인 연락처·개별 쿠폰처럼 정책 문서로 알 수 없는 질문
+        - 검색된 근거가 없을 때
+        - 모델 출력 형식이 틀렸거나 모델이 스스로 보류했을 때
+        - 인용한 청크 ID가 실제로 넘겨준 근거에 없을 때
+        """
         if not question.strip():
             return RagAnswer("질문을 입력해 주세요.", True, (), "empty_question")
         if ORDER_ID_RE.search(question):
@@ -112,6 +142,8 @@ class PolicyRAG:
             return RagAnswer("개별 쿠폰 발급 정보를 조회할 수 없어 금액을 확인할 수 없습니다.", True, (), "requires_coupon_data")
 
         hits = self.retriever.search(question, RETRIEVAL_K)
+        # 검색된 정책의 청크를 모두 근거로 넘기되, 검색에서 가장 잘 맞은 청크를 맨 앞에 둔다.
+        # 정책 하나의 예외 조항이 다른 섹션에 있는 경우가 많아 청크 하나만 넘기면 답이 틀리기 쉽다.
         evidence = [
             chunk
             for hit in hits
@@ -131,6 +163,7 @@ class PolicyRAG:
         if output["abstain"]:
             return RagAnswer("제공된 정책 근거만으로 질문의 핵심을 확인할 수 없습니다.", True, (), "model_abstained")
 
+        # 인용 검증: 모델이 만들어 낸 ID나 넘겨주지 않은 청크를 인용하면 답변 전체를 보류한다.
         chunks_by_id = {chunk.chunk_id: chunk for chunk in evidence}
         ids = output["evidence_ids"]
         if (
@@ -139,6 +172,7 @@ class PolicyRAG:
             or any(not isinstance(item, str) or item not in chunks_by_id for item in ids)
         ):
             return RagAnswer("검증 가능한 정책 인용이 없어 답변을 보류합니다.", True, (), "invalid_citation")
+        # dict.fromkeys로 순서를 유지하면서 중복 인용을 없앤다.
         citations = tuple(
             Citation(chunks_by_id[item].policy_id, item, chunks_by_id[item].source_path)
             for item in dict.fromkeys(ids)

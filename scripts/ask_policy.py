@@ -1,4 +1,5 @@
-"""Ask one policy question with Phase 4 grounded generation."""
+"""정책 질문 하나를 하이브리드 검색 + RAG(근거 인용 답변)로 처리해 JSON으로 출력한다.
+실행: python3 scripts/ask_policy.py "제주 추가 배송비는?" (로컬 Ollama 모델 필요)"""
 
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from supportops.rag import OllamaAnswerModel, PolicyRAG  # noqa: E402
 
 
 def main() -> int:
+    """질문을 받아 BM25 + 임베딩 RRF 검색과 Ollama 답변 생성을 실행하고 결과를 출력한다."""
     parser = argparse.ArgumentParser()
     parser.add_argument("question")
     args = parser.parse_args()

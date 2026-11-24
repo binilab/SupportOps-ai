@@ -1,3 +1,6 @@
+"""FastAPI 엔드포인트, PostgreSQL 시드 적재, DB URL 검증, 토큰 사용량 집계를 검증한다.
+PostgreSQL이 필요한 테스트는 SUPPORTOPS_TEST_DATABASE_URL이 없으면 건너뛴다."""
+
 from __future__ import annotations
 
 import os
@@ -20,24 +23,31 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FixedRouter:
+    """질문 맨 앞의 주문 ID로 취소 의도의 get_order 요청을 만드는 가짜 라우터."""
     def choose(self, question: str) -> ToolRequest:
+        """질문의 첫 토큰을 주문 ID로 사용해 도구 요청을 반환한다."""
         order_id = question.split()[0]
         return ToolRequest("get_order", {"order_id": order_id, "intent": "cancel"})
 
 
 class FailedRouter:
+    """항상 모델 연결 오류를 일으키는 가짜 라우터."""
     def choose(self, question: str) -> ToolRequest:
+        """도구 요청을 만드는 대신 연결 오류를 던진다."""
         raise httpx.ConnectError("local model is down")
 
 
 class FixedRAG:
+    """고정된 배송 정책 답변과 인용을 돌려주는 가짜 RAG."""
     def answer(self, question: str) -> RagAnswer:
+        """질문과 무관하게 제주 배송비 답변을 반환한다."""
         return RagAnswer("제주 배송비는 별도입니다.", False, (
             Citation("policy_shipping_v1", "policy_shipping_v1::02", "data/raw/policies/shipping.md"),
         ))
 
 
 def test_request_validation_and_missing_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """DB 설정이 없거나 연결할 수 없을 때 503을 내고, 잘못된 요청 본문은 422로 거절하는지 확인한다."""
     monkeypatch.delenv("SUPPORTOPS_DATABASE_URL", raising=False)
     with TestClient(create_app(router=FixedRouter(), policy_rag=FixedRAG())) as client:
         assert client.get("/health").status_code == 503
@@ -52,11 +62,13 @@ def test_request_validation_and_missing_configuration(monkeypatch: pytest.Monkey
 
 @pytest.mark.skipif(not os.environ.get("SUPPORTOPS_TEST_DATABASE_URL"), reason="PostgreSQL not configured")
 def test_postgres_seed_and_api_round_trip(tmp_path: Path) -> None:
+    """CSV 시드의 멱등 적재와 불일치 감지, 그리고 API의 주문/정책/모델 장애 응답을 실제 PostgreSQL로 확인한다."""
     url = os.environ["SUPPORTOPS_TEST_DATABASE_URL"]
     engine = make_engine(url)
     paths = (ROOT / "data/raw/structured/orders.csv", ROOT / "data/raw/structured/products.csv")
     try:
         assert seed_demo_data(engine, *paths) == (10, 10)
+        # 같은 데이터를 다시 적재해도 결과가 같아야 한다(멱등).
         assert seed_demo_data(engine, *paths) == (10, 10)
         changed_products = tmp_path / "products.csv"
         changed_products.write_text(
@@ -100,11 +112,13 @@ def test_postgres_seed_and_api_round_trip(tmp_path: Path) -> None:
 
 
 def test_database_url_requires_psycopg_driver() -> None:
+    """postgresql+psycopg 드라이버가 아닌 DB URL은 거절하는지 확인한다."""
     with pytest.raises(ValueError, match="postgresql\\+psycopg"):
         make_engine("sqlite:///:memory:")
 
 
 def test_usage_counts_multiple_model_calls_without_guessing_missing_counts() -> None:
+    """여러 모델 호출의 토큰 수를 합산하되, 집계되지 않은 값은 추측하지 않는지 확인한다."""
     reset_usage()
     assert get_usage() is None
     record_usage(None, 4)

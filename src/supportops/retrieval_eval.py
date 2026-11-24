@@ -1,4 +1,8 @@
-"""Policy-ID retrieval metrics shared by lexical and dense baselines."""
+"""정책 검색 성능을 Gold 평가셋으로 측정한다.
+
+BM25, 임베딩, 하이브리드 검색이 모두 같은 함수로 평가되므로 결과를 그대로 비교할 수 있다.
+지표는 Recall@1/3/5, MRR, 질문당 검색 시간(중앙값, p95)이다.
+"""
 
 from __future__ import annotations
 
@@ -12,13 +16,21 @@ KS = (1, 3, 5)
 
 
 class PolicySearchIndex(Protocol):
+    """평가할 수 있는 검색 인덱스의 공통 형태."""
+
     chunks: list[PolicyChunk]
 
     def search(self, query: str, k: int = 5) -> list[PolicyHit]: ...
 
 
 def evaluate(rows: list[dict], index: PolicySearchIndex) -> dict:
-    """Measure policy-ID recall, first-relevant MRR, and per-query search time."""
+    """Gold 질문마다 검색을 실행해 정책 ID 기준 지표를 계산한다.
+
+    - Recall@k: 정답 정책 중 상위 k개 안에 들어온 비율의 평균
+    - MRR: 첫 번째 정답 정책 순위의 역수 평균
+    - failures_at_5: 정답 정책을 상위 5개 안에 모두 찾지 못한 질문 목록 (실패 분석용)
+    정답 정책이 없는 질문(답변 불가 사례)은 검색 평가에서 제외한다.
+    """
     eligible = [row for row in rows if row["expected_policy_ids"]]
     if not eligible:
         raise ValueError("No Gold rows with expected policy IDs")
@@ -47,6 +59,7 @@ def evaluate(rows: list[dict], index: PolicySearchIndex) -> dict:
             })
 
     sorted_latencies = sorted(latencies_ms)
+    # p95 위치를 올림으로 계산한다 (nearest-rank 방식). 정수 연산으로 부동소수 오차를 피한다.
     p95_index = max(0, (95 * len(sorted_latencies) + 99) // 100 - 1)
     return {
         "gold_count": len(rows),

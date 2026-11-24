@@ -1,4 +1,8 @@
-"""Exact pgvector storage and cosine search for the fixed Phase 2 model."""
+"""pgvector에 정책 임베딩을 저장하고 PostgreSQL 안에서 코사인 검색을 한다.
+
+메모리 검색(dense.py)과 같은 결과가 나오는지 확인하려고 만든 저장소다.
+현재 API의 정책 검색은 메모리 기반 하이브리드 검색을 쓰고, 이 모듈은 평가 스크립트에서만 쓴다.
+"""
 
 from __future__ import annotations
 
@@ -13,13 +17,16 @@ from supportops.lexical import PolicyChunk, PolicyHit
 
 
 class PgVectorPolicyStore:
+    """정책 청크 임베딩 테이블을 관리하고 검색한다."""
+
     def __init__(self, connection: psycopg.Connection) -> None:
         self.connection = connection
 
     def setup(self) -> None:
-        """Create a Phase 2-only table and register the pgvector type."""
+        """vector 확장과 임베딩 테이블을 만든다. 이미 있으면 그대로 둔다."""
         self.connection.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(self.connection)
+        # 모델 버전(revision)별로 저장해서 모델을 바꿔도 이전 벡터와 섞이지 않게 한다.
         self.connection.execute(
             """
             CREATE TABLE IF NOT EXISTS phase2_policy_vectors (
@@ -35,7 +42,7 @@ class PgVectorPolicyStore:
         self.connection.commit()
 
     def replace(self, chunks: Sequence[PolicyChunk], vectors: np.ndarray, revision: str) -> None:
-        """Replace only this model revision's policy vectors."""
+        """해당 모델 버전의 벡터를 지우고 새로 넣는다. 한 트랜잭션이라 중간에 실패하면 원래 상태로 돌아간다."""
         if vectors.shape != (len(chunks), EMBEDDING_DIM) or not np.isfinite(vectors).all():
             raise ValueError("Invalid vectors for policy chunks")
         if not revision:
@@ -58,7 +65,7 @@ class PgVectorPolicyStore:
                 )
 
     def count(self, revision: str) -> int:
-        """Count stored chunks for one model revision."""
+        """해당 모델 버전으로 저장된 청크 수를 센다."""
         row = self.connection.execute(
             "SELECT count(*) FROM phase2_policy_vectors WHERE model_revision = %s", (revision,)
         ).fetchone()
@@ -72,7 +79,11 @@ class PgVectorPolicyStore:
         k: int = 5,
         policy_id: str | None = None,
     ) -> list[PolicyHit]:
-        """Run exact cosine distance in Postgres and collapse chunks by policy."""
+        """질문 벡터와 코사인 거리가 가까운 순으로 청크를 찾아 정책 단위로 묶는다.
+
+        `<=>`는 pgvector의 코사인 거리 연산자라 유사도는 1 - 거리로 바꿔 돌려준다.
+        인덱스 없이 전체를 비교하는 정확한(exact) 검색이라 메모리 검색 결과와 직접 비교할 수 있다.
+        """
         if k < 1:
             raise ValueError("k must be positive")
         if vector.shape != (EMBEDDING_DIM,) or not np.isfinite(vector).all():
@@ -90,6 +101,7 @@ class PgVectorPolicyStore:
         ).fetchall()
         hits: list[PolicyHit] = []
         seen: set[str] = set()
+        # 거리순으로 정렬돼 있으므로 정책마다 처음 나온 청크가 가장 가까운 청크다.
         for found_policy_id, chunk_id, source_path, distance in rows:
             if found_policy_id in seen:
                 continue
@@ -101,6 +113,8 @@ class PgVectorPolicyStore:
 
 
 class PgVectorPolicyIndex:
+    """질문 임베딩은 메모리 모델로 만들고, 검색은 pgvector에서 하는 인덱스."""
+
     def __init__(self, dense_index: DensePolicyIndex, store: PgVectorPolicyStore, revision: str) -> None:
         self.dense_index = dense_index
         self.chunks = dense_index.chunks
@@ -108,6 +122,7 @@ class PgVectorPolicyIndex:
         self.revision = revision
 
     def search(self, query: str, k: int = 5) -> list[PolicyHit]:
+        """질문을 임베딩한 뒤 pgvector에서 상위 k개 정책을 찾는다."""
         if k < 1:
             raise ValueError("k must be positive")
         if not query.strip():

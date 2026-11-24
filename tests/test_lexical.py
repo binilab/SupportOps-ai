@@ -1,3 +1,5 @@
+"""BM25 정책 검색(lexical)의 청크 분할, 토큰화, 검색과 평가 지표(Recall@k, MRR) 계산을 테스트한다."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -23,6 +25,7 @@ spec.loader.exec_module(module)
 
 
 def test_policy_chunks_preserve_source_and_search_terms(tmp_path: Path) -> None:
+    """정책 문서를 섹션별 청크로 나눌 때 정책 ID, 출처 경로, 제목, 토큰화가 유지되는지 확인한다."""
     policy_dir = tmp_path / "policies"
     policy_dir.mkdir()
     (policy_dir / "sample.md").write_text(
@@ -45,6 +48,7 @@ def test_policy_chunks_preserve_source_and_search_terms(tmp_path: Path) -> None:
 
 
 def test_real_corpus_search_and_empty_query() -> None:
+    """실제 정책 코퍼스에서 검색이 맞는 정책을 찾고, 토큰이 없는 질의와 잘못된 k를 처리하는지 확인한다."""
     index = BM25PolicyIndex(load_policy_chunks(ROOT / "data/raw/policies", ROOT))
 
     assert index.search("제주 지역 추가 배송비", 1)[0].policy_id == "policy_shipping_v1"
@@ -54,10 +58,13 @@ def test_real_corpus_search_and_empty_query() -> None:
 
 
 def test_evaluation_counts_partial_multi_policy_recall() -> None:
+    """여러 정책이 기대되는 문항의 부분 재현율과 MRR, 기대 정책이 없는 문항의 제외, 실패 목록을 확인한다."""
     class FakeIndex:
+        """질의 문자열에 따라 정해진 순서의 정책을 반환하는 가짜 인덱스."""
         chunks = [PolicyChunk("a::01", "a", "sample.md", "sample", "section", "text")]
 
         def search(self, query: str, k: int) -> list[PolicyHit]:
+            """질의에 대응하는 정책 ID 목록의 상위 k개를 PolicyHit으로 반환한다."""
             ids = {"first": ["b", "c", "a"], "second": []}.get(query, [])
             return [PolicyHit(value, value, "sample.md", 1.0) for value in ids[:k]]
 
@@ -70,7 +77,9 @@ def test_evaluation_counts_partial_multi_policy_recall() -> None:
 
     assert result["evaluated_count"] == 2
     assert result["excluded_no_policy_count"] == 1
+    # 문항 one은 기대 정책 {a, b} 중 1위(b)로 1/2, two는 0이므로 평균 0.25이다.
     assert result["recall_at_1"] == pytest.approx(0.25)
     assert result["recall_at_3"] == pytest.approx(0.5)
+    # MRR은 첫 정답 순위의 역수 평균이다. one은 b가 1위라 1, two는 0이므로 0.5이다.
     assert result["mrr"] == pytest.approx(0.5)
     assert [failure["id"] for failure in result["failures_at_5"]] == ["two"]

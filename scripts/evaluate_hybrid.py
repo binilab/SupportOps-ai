@@ -1,4 +1,5 @@
-"""Evaluate Phase 3 BM25 + dense reciprocal rank fusion on the fixed Gold."""
+"""BM25 + 임베딩 검색의 RRF(Reciprocal Rank Fusion) 결합 성능을 Gold 데이터로 평가한다.
+실행: python3 scripts/evaluate_hybrid.py > reports/phase3_hybrid_rrf.json"""
 
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ POLICY_DIR = ROOT / "data" / "raw" / "policies"
 
 
 def main() -> int:
+    """하이브리드 인덱스로 Gold 질문을 검색해 지표와 RRF 설정, 재현용 메타데이터를 출력한다."""
     rows = [json.loads(line) for line in GOLD_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
     chunks = load_policy_chunks(POLICY_DIR, ROOT)
     index = HybridPolicyIndex(BM25PolicyIndex(chunks), DensePolicyIndex(chunks, load_embedding_model()))

@@ -1,3 +1,5 @@
+"""SupportAgent의 주문 도구 호출 흐름과 환불/취소 자격 판정 규칙(결정론적 Python 규칙)을 검증한다."""
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -16,18 +18,23 @@ AS_OF = date(2026, 10, 5)
 
 
 def store() -> StructuredStore:
+    """테스트용 CSV 데이터로 StructuredStore를 만든다."""
     return StructuredStore(ROOT / "data/raw/structured/orders.csv", ROOT / "data/raw/structured/products.csv")
 
 
 class FakeRouter:
+    """LLM 없이 고정된 도구 요청을 돌려주는 가짜 라우터."""
     def __init__(self, request: ToolRequest | None) -> None:
+        """라우터가 반환할 도구 요청을 저장한다."""
         self.request = request
 
     def choose(self, question: str) -> ToolRequest | None:
+        """질문과 무관하게 미리 정한 도구 요청을 반환한다."""
         return self.request
 
 
 def agent(order_id: str, intent: str) -> SupportAgent:
+    """지정한 주문 ID와 의도로 get_order를 호출하는 가짜 라우터를 쓴 에이전트를 만든다."""
     return SupportAgent(
         store(), FakeRouter(ToolRequest("get_order", {"order_id": order_id, "intent": intent})),
         load_policy_chunks(ROOT / "data/raw/policies", ROOT),
@@ -35,6 +42,7 @@ def agent(order_id: str, intent: str) -> SupportAgent:
 
 
 def test_structured_records_and_invalid_bool() -> None:
+    """주문/상품 CSV 로딩, 없는 주문 조회, 잘못된 불리언 값 처리를 확인한다."""
     data = store()
     assert len(data.orders) == 10 and len(data.products) == 10
     assert data.get_order("ORD-1001").product_id == "P-1001"
@@ -45,6 +53,7 @@ def test_structured_records_and_invalid_bool() -> None:
 
 
 def test_refund_rules_keep_unknown_condition_separate_from_damage() -> None:
+    """사용 상태 미확인과 재판매 손상을 구분하고, 업체 과실 및 특수 조건 검토 감지가 동작하는지 확인한다."""
     data = store()
     order = data.get_order("ORD-1007")
     product = data.get_product("P-1001")
@@ -60,10 +69,12 @@ def test_refund_rules_keep_unknown_condition_separate_from_damage() -> None:
 
 
 def test_refund_period_and_product_restrictions() -> None:
+    """환불 기간 경계(배송 후 7일)와 위생 상품, 사용된 디지털 상품 제한을 확인한다."""
     data = store()
     base = data.get_order("ORD-1001")
     shirt = data.get_product("P-1001")
     assert check_refund_eligibility(base, shirt, AS_OF, components_confirmed=True, resale_damage_reported=False).status == "eligible"
+    # ORD-1001은 10/1 배송이므로 10/8까지는 가능하고 10/9부터 기간이 만료된다.
     assert check_refund_eligibility(base, shirt, date(2026, 10, 8), components_confirmed=True, resale_damage_reported=False).status == "eligible"
     assert check_refund_eligibility(base, shirt, date(2026, 10, 9), components_confirmed=True, resale_damage_reported=False).reason == "refund_window_expired"
     assert check_refund_eligibility(base, shirt, AS_OF, components_confirmed=False, resale_damage_reported=False).reason == "components_unknown"
@@ -72,6 +83,7 @@ def test_refund_period_and_product_restrictions() -> None:
 
 
 def test_cancel_rules_and_workflow_tool_sequence() -> None:
+    """취소 가능 여부 규칙과 에이전트가 호출하는 도구 순서를 확인한다."""
     data = store()
     assert check_cancel_eligibility(data.get_order("ORD-1003"), data.get_product("P-1003")).reason == "custom_production_started"
     assert check_cancel_eligibility(replace(data.get_order("ORD-1003"), custom_production_started=False), data.get_product("P-1003")).status == "eligible"
@@ -88,7 +100,9 @@ def test_cancel_rules_and_workflow_tool_sequence() -> None:
 
 
 def test_agent_validates_model_arguments_and_missing_data() -> None:
+    """모델이 낸 잘못된 인자와 누락된 데이터(없는 주문, 배송 추적, 불량 주장, 잘못된 날짜)에서 에이전트가 보류하는지 확인한다."""
     chunks = load_policy_chunks(ROOT / "data/raw/policies", ROOT)
+    # 질문의 주문(ORD-1001)과 다른 주문 ID를 모델이 제안한 상황을 만든다.
     wrong = SupportAgent(store(), FakeRouter(ToolRequest("get_order", {"order_id": "ORD-1007", "intent": "refund"})), chunks)
     assert wrong.run("ORD-1001 환불 가능해?", AS_OF).outcome == "invalid_tool_request"
     assert wrong.run("ORD-1001 환불 가능해?", AS_OF).trace == ()

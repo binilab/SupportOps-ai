@@ -1,4 +1,5 @@
-"""Run the fixed Phase 1 policy-retrieval evaluation."""
+"""BM25 정책 검색 기준선을 Gold 데이터로 평가한다(Recall@k, MRR).
+실행: python3 scripts/evaluate_bm25.py > reports/phase1_bm25_baseline.json"""
 
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from supportops.retrieval_eval import evaluate  # noqa: E402
 GOLD_PATH = ROOT / "data" / "eval" / "gold_dataset.jsonl"
 POLICY_DIR = ROOT / "data" / "raw" / "policies"
 def main() -> int:
+    """BM25 인덱스로 Gold 질문을 검색해 지표와 재현용 메타데이터(해시, 라이브러리 버전)를 출력한다."""
     rows = [json.loads(line) for line in GOLD_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
     index = BM25PolicyIndex(load_policy_chunks(POLICY_DIR, ROOT))
     result = evaluate(rows, index)

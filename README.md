@@ -1,91 +1,116 @@
 # SupportOps AI
 
-**평가 가능한 근거 기반 한국어 커머스 고객지원 에이전트** · Applied AI Engineer 포트폴리오
+**근거를 인용하고, 근거가 부족하면 답하지 않는 한국어 커머스 고객지원 에이전트**
 
-가상의 쇼핑몰 MoaShop 상담원을 위한 읽기 전용 Copilot이다. 정책 질문에는 출처 청크를 찾아 답하고, 주문 질문에는 합성 주문·상품을 조회해 Python의 확정적 규칙으로 환불·취소 신청 가능 여부를 판단한다. 근거가 부족하면 보류한다. 실제 취소나 환불은 실행하지 않는다.
+가상의 쇼핑몰 MoaShop 상담원을 돕는 읽기 전용 상담 보조 시스템입니다.
 
-![실제 API 응답을 재생한 SupportOps AI 데모](demo/supportops-demo.gif)
+- **정책 질문** ("제주도는 배송비가 더 붙어?") → 정책 문서를 검색해 답하고, 어떤 문서의 어느 섹션을 근거로 했는지 함께 보여 줍니다.
+- **주문 질문** ("ORD-1008 지금 취소 가능해?") → 주문·상품을 조회한 뒤 Python 규칙으로 환불·취소 가능 여부를 판단합니다.
+- **근거가 부족한 질문** → 지어내지 않고 "확인할 수 없다"고 보류합니다.
 
-[데모 원본 응답](demo/api_examples.json) · [실행·캡처 방법](demo/README.md) · [GitHub Actions CI](https://github.com/binilab/SupportOps-ai/actions/workflows/ci.yml)
+실제 환불·취소는 실행하지 않으며, 모든 데이터는 직접 설계한 합성 데이터입니다.
 
-## 1. 실행해 보기
+![실제 API 응답을 재생한 데모](demo/supportops-demo.gif)
 
-Docker Compose와 호스트에서 실행되는 Ollama가 필요하다. 로컬 모델 두 개를 내려받고 `.env`에 URL에서 사용 가능한 로컬 DB 비밀번호를 설정한다.
+## 핵심 결과
+
+평가셋 40문항(정답 정책·필수 사실·도구 호출 여부를 미리 정해 둔 고정 데이터)으로 측정했습니다.
+
+| 항목 | 결과 |
+|---|---|
+| 정책 검색 Recall@5 | BM25 0.946 · 임베딩 0.919 → **하이브리드(RRF) 0.973** |
+| 정책 답변: 필수 사실을 모두 포함 | **22/25** (수동 검토) |
+| 정책 답변: 인용이 실제 근거와 일치 | **25/25** (수동 검토) |
+| 답하면 안 되는 질문을 보류 | **15/15** |
+| 주문 질문: 도구 호출·판정·보류가 모두 정답 | **11/11** |
+
+평가셋은 개발 중에도 계속 사용했기 때문에 위 수치는 처음 보는 질문에 대한 일반화 성능이 아니라 **개발 평가 결과**입니다. 자세한 실험 과정과 실패 사례는 [실험 기록](docs/EXPERIMENTS.md)에 정리했습니다.
+
+## 동작 구조
+
+```mermaid
+flowchart LR
+    Q["상담원 질문"] --> API["FastAPI"] --> A["SupportAgent"]
+    A -->|주문 ID 있음| T["라우터 LLM<br/>qwen2.5:3b"]
+    T --> V["주문 ID·요청 종류 검증"] --> SQL["PostgreSQL<br/>주문·상품 조회"]
+    SQL --> RULE["Python 환불·취소 규칙"] --> OUT["답변 · 보류 · 인용 · 실행 내역"]
+    A -->|정책 질문| RET["BM25 + 임베딩<br/>RRF 결합 검색"]
+    RET --> LLM["답변 LLM<br/>gemma4:12b"] --> CITE["인용 ID 검증"] --> OUT
+```
+
+**정책 질문 처리**
+1. 정책 Markdown 8개를 소제목 단위로 나눈 35개 청크에서 BM25와 임베딩 검색을 각각 실행합니다.
+2. 두 검색의 순위를 RRF로 합쳐 상위 정책 3개를 고릅니다.
+3. LLM에 근거 청크를 주고 JSON(답변, 보류 여부, 사용한 청크 ID)으로 답하게 합니다.
+4. 모델이 인용한 청크 ID가 실제로 넘겨준 근거에 있는지 코드로 확인하고, 아니면 답변을 보류합니다.
+
+**주문 질문 처리**
+1. 작은 LLM이 `get_order` 도구 호출과 요청 종류(환불/취소/배송)를 제안합니다.
+2. 제안된 주문 ID가 질문의 주문 ID와 다르거나 요청 종류가 이상하면 조회하지 않습니다.
+3. 주문·상품을 조회하고, 환불·취소 가능 여부는 LLM이 아니라 Python 규칙이 판단합니다.
+4. 답변 문구와 인용 정책도 규칙 판단 결과에 따라 코드에서 정합니다.
+
+## 설계에서 중요하게 본 것
+
+- **판단은 코드로.** 환불 기간(배송 완료 다음 날부터 7일), 주문제작·위생·디지털 상품 제한처럼 조건이 명확한 규칙은 LLM에 맡기지 않았습니다. 같은 입력에는 항상 같은 결과가 나오고 테스트로 검증할 수 있습니다.
+- **LLM 출력은 검증 후에만 사용.** 라우터가 잘못 옮겨 적은 주문 ID로 다른 주문을 조회하지 않고, 답변 LLM이 만들어 낸 인용 ID는 거부합니다.
+- **평가셋을 먼저 고정.** 검색 방식을 바꾸기 전에 평가셋을 만들고, 성능에 맞춰 평가셋이나 정책 문구를 고치지 않았습니다.
+- **프레임워크는 필요할 때만.** 검색 1회 → 생성 1회 → 검증으로 끝나는 구조라 LangChain/LangGraph 없이 직접 구현했습니다.
+
+선택 이유와 대안은 [설계 결정](docs/DESIGN.md)에 있습니다.
+
+## 실행
+
+Docker Compose와 [Ollama](https://ollama.com/download)가 필요합니다.
 
 ```bash
-cp .env.example .env
-# .env의 SUPPORTOPS_DB_PASSWORD 값을 변경
+cp .env.example .env          # SUPPORTOPS_DB_PASSWORD 값을 바꿔 주세요
 ollama pull qwen2.5:3b
 ollama pull gemma4:12b
 docker compose up -d --build
-curl -sS http://127.0.0.1:8000/health
+
 curl -sS http://127.0.0.1:8000/v1/answer \
   -H 'Content-Type: application/json' \
   -d '{"question":"ORD-1008 지금 취소 가능해?","as_of":"2026-10-05"}'
 ```
 
-예시 응답은 `cancel_request_allowed`와 `policy_cancel_v1::01` 인용을 반환하며, 실제 취소는 실행하지 않았다고 명시한다. 없는 주문 `ORD-9999`는 보류한다. 정책 질문 `제주도는 배송비가 더 붙어?`는 `policy_shipping_v1::02`를 인용한다. 첫 정책 요청에는 임베딩 모델 다운로드가 필요해 오래 걸릴 수 있다. 자세한 시작·종료·장애 절차는 [Phase 7 실행 안내](docs/PHASE7_OPERATIONS.md)에 있다.
+응답 예시: `outcome: cancel_request_allowed`, 인용 `policy_cancel_v1::01`, "실제 취소는 실행하지 않았습니다." 존재하지 않는 주문(`ORD-9999`)은 보류합니다. 첫 정책 질문은 임베딩 모델을 내려받느라 1분 이상 걸릴 수 있습니다.
 
-## 2. 실제 구현 구조
+API 명세, 로컬 실행, 테스트 DB 설정은 [실행·운영 가이드](docs/OPERATIONS.md)를 참고해 주세요.
 
-```mermaid
-flowchart LR
-    Q["상담원 질문"] --> API["FastAPI · Pydantic"] --> A["SupportAgent"]
-    A -->|주문 ID 있음| T["Ollama qwen2.5:3b<br/>첫 Tool·의도 제안"]
-    T --> V["주문 ID·Tool 인자 검증"] --> SQL["SQLAlchemy<br/>주문·상품 조회"]
-    CSV["버전 관리된 합성 CSV"] -->|명시적 적재| DB[(PostgreSQL)]
-    DB --> SQL --> RULE["Python 환불·취소 규칙"] --> OUT["답변·보류·인용·Tool trace"]
-    A -->|정책 질문| RET["BM25 + 로컬 Dense<br/>정책 ID별 RRF"]
-    POL["정책 Markdown 8개<br/>출처 청크 35개"] --> RET
-    RET --> LLM["Ollama gemma4:12b<br/>근거 기반 생성"] --> CITE["제공된 청크 ID 검증"] --> OUT
-```
-
-서비스의 정책 검색은 평가한 **로컬 Hybrid RRF** 경로를 사용한다. PostgreSQL/pgvector는 Phase 2에서 벡터 저장·조회와 로컬 검색 결과 일치를 검증했지만 API의 정책 검색 경로는 아니다. 주문·상품은 PostgreSQL에서 읽는다. 구조화 로그에는 요청 ID, 결과, 지연 시간과 Ollama가 제공한 토큰 수를 기록한다. 로컬 Ollama의 금전 비용은 추정하지 않는다. [API 계약과 오류](docs/PHASE6_SERVICE.md)
-
-## 3. 고정 Gold와 검색 실험
-
-Gold 40개 중 필수 정책 ID가 표시된 **37개**로 아래 검색 지표를 계산했다. 정책 8개와 청크 35개를 동일하게 유지했고, 필수 정책을 정책 ID 단위로 찾았는지 평가했다. 시간은 단일 로컬 실행의 검색 호출 중앙값이며 모델 적재와 문서 임베딩 생성은 제외한다.
-
-| 검색 방법 | Recall@1 | Recall@3 | Recall@5 | MRR | 검색 중앙값 |
-|---|---:|---:|---:|---:|---:|
-| [BM25](reports/phase1_bm25_baseline.json) | 0.6081 | 0.8378 | 0.9459 | 0.7883 | 0.045 ms |
-| [Dense 로컬](reports/phase2_dense_local.json) | 0.7297 | 0.8378 | 0.9189 | 0.8905 | 5.680 ms |
-| [Dense pgvector](reports/phase2_dense_pgvector.json) | 0.7297 | 0.8378 | 0.9189 | 0.8905 | 7.071 ms |
-| **[Hybrid RRF](reports/phase3_hybrid_rrf.json)** | **0.7432** | **0.9324** | **0.9730** | **0.9009** | 6.208 ms |
-
-Hybrid는 같은 Gold에서 Dense 로컬 대비 Recall@3이 0.0946 높았고 중앙 검색 시간은 약 0.528 ms 길었다. 상위 5개에서 필수 정책을 놓친 질문은 BM25 2개, Dense 5개, Hybrid 1개다. Reranker는 구현하지 않았다. [검색 방법과 실패 분석](docs/PHASE3_RETRIEVAL.md)
-
-## 4. 답변과 Tool 평가
-
-| 평가 | 고정 집합 | 결과 | 지연 시간 중앙값 |
-|---|---:|---:|---:|
-| 정책 RAG 필수 사실 모두 포함, 수동 검토 | 답변 대상 25개 | **22/25** | 답변 대상 26.393초 |
-| 정책 RAG 근거 충실도·청크 인용 정확성, 수동 검토 | 실제 답변 25개 | **각 25/25** | 위와 동일 |
-| 정책 RAG 보류 정확성 | 보류 대상 15개 | **15/15** | 전체 40개 24.218초 |
-| 주문 Workflow 첫 Tool·인자·전체 순서·판정·보류 | Tool 대상 11개 | **각 11/11** | 0.759초 |
-
-[RAG 원본 출력](reports/phase4_rag_local.json)·[수동 검토](reports/phase4_review.json) / [Tool 원본 출력](reports/phase5_agent_local.json)·[수동 검토](reports/phase5_review.json). 수동 평가는 한 사람이 수행했다. Gold 질문을 구현 중에도 사용했으므로 이 값은 **개발 평가 결과**이며 미지 질문에 대한 일반화 성능이 아니다. 정책 RAG 전체 중앙 시간에는 모델 호출 없이 보류한 사례가 포함된다. 검색 수치를 답변 정확성으로 해석하지 않는다.
-
-## 5. 남은 실패와 설계 선택
-
-| 확인된 사례 | 관찰 | 현재 처리·한계 |
-|---|---|---|
-| `eval_0033` 오타가 있는 주문 취소 질문 | Hybrid Top 5에 필수 취소 정책이 없다 | 검색 품질의 남은 실패다. 주문 ID가 있는 API 경로는 별도로 주문 Tool을 검증한다. |
-| `eval_0038`·`0039`·`0040` | RAG가 동일 옵션 재고 조건 또는 개별 쿠폰·상품 조건의 우선순위를 빠뜨렸다 | 인용 ID의 존재 검증만으로 답변의 모든 조건을 보장할 수 없다. |
-| 첫 컨테이너 정책 요청 | 모델 다운로드·초기화까지 약 92초 | 임베딩 캐시 볼륨을 유지한다. 이 수치를 일반 응답 시간으로 사용하지 않는다. |
-| 존재하지 않는 주문·미확인 하자·상품별 조건 | 데이터나 확인 결과가 부족하다 | 확정 판정을 하지 않고 보류한다. |
-
-명확한 환불·취소 규칙은 LLM 추론이 아닌 Python 코드에 둔다. 모델 제안 주문 ID가 질문과 다르면 조회하지 않는다. LangChain과 LangGraph는 이 작은 검색·생성 경로와 고정된 후속 Tool 순서의 복잡도를 줄이지 않아 도입하지 않았다. 선택 이유와 효과는 [결정 기록](DECISIONS.md)에 있다. 실제 개인정보, 결제·환불 실행, 운영 인증, 클라우드 배포는 [제품 범위](PROJECT_SCOPE.md) 밖이다.
-
-## 6. 검증과 문서
+## 테스트
 
 ```bash
 python3 -m pip install -e '.[dev]'
-python3 scripts/validate_gold_dataset.py
-python3 -m pytest -q
-python3 scripts/evaluate_hybrid.py
+python3 scripts/validate_gold_dataset.py   # 평가셋 형식·정책 ID 검증
+python3 -m pytest -q                       # DB 없이 23개 통과, DB 통합 테스트 2개는 건너뜀
 ```
 
-DB를 포함한 전체 pytest에는 별도 PostgreSQL/pgvector 테스트 DB의 `SUPPORTOPS_TEST_DATABASE_URL`이 필요하다. 없으면 DB 통합 테스트 2개를 건너뛴다. CI는 DB를 준비해 전체 25개를 실행한다. RAG·Tool 평가는 로컬 Ollama 모델 digest와 수동 검토에 묶인 별도 실험이다. [재현 절차](docs/PHASE7_OPERATIONS.md) · [면접 질문·답변](docs/INTERVIEW.md) · [현재 단계](PROGRESS.md)
+GitHub Actions CI는 PostgreSQL/pgvector를 띄워 DB 통합 테스트까지 25개를 모두 실행합니다. CI에서는 실제 LLM 대신 가짜 모델을 써서 규칙·검증 경로를 확인합니다.
 
-핵심 데이터는 출처와 ID가 유지되는 **합성 MoaShop 데이터**다: [정책](data/raw/policies), [주문·상품](data/raw/structured), [Gold 평가셋](data/eval/gold_dataset.jsonl). 저장소의 예시는 실제 고객 데이터가 아니다.
+## 코드 구성
+
+| 경로 | 역할 |
+|---|---|
+| `src/supportops/lexical.py` | 정책 문서를 청크로 나누고 BM25로 검색 |
+| `src/supportops/dense.py` | 다국어 임베딩 모델로 검색 |
+| `src/supportops/hybrid.py` | 두 검색 결과를 RRF로 결합 |
+| `src/supportops/vector_store.py` | pgvector 저장·검색 (메모리 검색과 결과 비교용) |
+| `src/supportops/rag.py` | 근거 기반 답변 생성과 인용 검증 |
+| `src/supportops/eligibility.py` | 환불·취소 가능 여부 규칙 |
+| `src/supportops/agent.py` | 주문/정책 질문 분기, 도구 호출 검증, 답변 구성 |
+| `src/supportops/structured.py`, `database.py` | 주문·상품 데이터 (CSV, PostgreSQL) |
+| `src/supportops/api.py` | FastAPI 서비스와 구조화 로그 |
+| `scripts/` | 평가 실행, DB 적재, 단일 질문 실행 |
+| `reports/` | 평가 결과 원본(JSON)과 수동 검토 기록 |
+| `data/raw/policies/` | 합성 정책 문서 8개 |
+| `data/raw/structured/` | 합성 주문 10건·상품 10건 |
+| `data/eval/gold_dataset.jsonl` | 평가셋 40문항 |
+
+## 한계
+
+- 오타가 있는 취소 질문(`eval_0033`)은 하이브리드 검색에서도 취소 정책을 상위 5개 안에 찾지 못합니다.
+- 인용 ID가 실제 근거에 있는지는 확인하지만, 답변 문장이 근거에서 논리적으로 따라오는지까지 자동으로 보장하지는 않습니다. 실제로 교환 재고 조건, 개별 쿠폰 조건의 우선순위를 빠뜨린 답변이 3건 있었습니다.
+- 로컬 `gemma4:12b`의 정책 답변은 질문당 20초대가 걸려 실제 상담 보조로 쓰기에는 느립니다.
+- 수동 평가는 한 사람이 했습니다.
+- 인증, 실제 결제·환불 연동, 클라우드 배포는 범위 밖입니다.

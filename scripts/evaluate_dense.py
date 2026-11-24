@@ -1,4 +1,6 @@
-"""Evaluate local or PostgreSQL-backed dense policy retrieval on fixed Gold."""
+"""임베딩 정책 검색을 Gold 데이터로 평가한다(로컬 또는 PostgreSQL pgvector).
+실행: python3 scripts/evaluate_dense.py [--backend local|pgvector] > reports/phase2_dense_local.json
+pgvector 백엔드는 환경변수 SUPPORTOPS_DATABASE_URL이 필요하다."""
 
 from __future__ import annotations
 
@@ -31,7 +33,7 @@ POLICY_DIR = ROOT / "data" / "raw" / "policies"
 
 
 def corpus_hash() -> str:
-    """Fingerprint the same source policies used by the Phase 1 baseline."""
+    """정책 문서 이름과 내용으로 코퍼스 SHA-256 지문을 만든다(기준선과 동일한 방식)."""
     digest = hashlib.sha256()
     for path in sorted(POLICY_DIR.glob("*.md")):
         digest.update(path.name.encode("utf-8"))
@@ -42,6 +44,7 @@ def corpus_hash() -> str:
 
 
 def main() -> int:
+    """선택한 백엔드로 임베딩 검색을 평가하고 지표와 모델/환경 메타데이터를 출력한다."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=("local", "pgvector"), default="local")
     args = parser.parse_args()
@@ -61,6 +64,7 @@ def main() -> int:
             store = PgVectorPolicyStore(connection)
             store.setup()
             store.replace(dense_index.chunks, dense_index.vectors, MODEL_REVISION)
+            # DB에 저장된 벡터 수가 청크 수와 다르면 평가 결과를 신뢰할 수 없으므로 중단한다.
             if store.count(MODEL_REVISION) != len(dense_index.chunks):
                 raise RuntimeError("Stored vector count does not match policy chunks")
             result = evaluate(rows, PgVectorPolicyIndex(dense_index, store, MODEL_REVISION))

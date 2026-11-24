@@ -1,4 +1,5 @@
-"""Evaluate Phase 5 native tool routing and deterministic outcomes on Gold."""
+"""Gold 데이터의 도구 사용 문항으로 에이전트의 도구 라우팅과 결정론적 판정 결과를 평가한다.
+실행: python3 scripts/evaluate_agent.py > reports/phase5_agent_local.json (로컬 Ollama 필요)"""
 
 from __future__ import annotations
 
@@ -27,7 +28,9 @@ EVAL_DATE = date(2026, 10, 5)
 
 
 def main() -> int:
+    """도구가 필요한 Gold 문항을 에이전트로 실행하고 정확도와 지연 시간을 담은 보고서를 출력한다."""
     rows = [json.loads(line) for line in GOLD_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # 주문 도구가 필요한 문항만 평가 대상으로 삼는다.
     selected = [row for row in rows if row["needs_tool"]]
     expectations = json.loads(EXPECTATIONS_PATH.read_text(encoding="utf-8"))
     if {row["id"] for row in selected} != set(expectations):
@@ -48,7 +51,9 @@ def main() -> int:
         order_id = match.group().upper()
         tool_names = [item.name for item in result.trace]
         request = result.router_request
+        # 라우터의 첫 호출이 get_order여야 정답으로 본다.
         initial_correct = request is not None and request.name == "get_order"
+        # 첫 요청과 이후 도구 호출 인자가 모두 기대한 주문/상품을 가리키는지 검사한다.
         arguments_correct = (
             initial_correct
             and request.arguments.get("order_id") == order_id
@@ -88,7 +93,9 @@ def main() -> int:
             for key in ("initial_tool_correct", "arguments_correct", "tool_sequence_correct", "outcome_correct", "abstention_correct")
         )
         cases.append(case)
+    # p95는 정렬된 지연 시간에서 nearest-rank 방식으로 고른다.
     latencies = sorted(case["latency_ms"] for case in cases)
+    # 정책 문서 내용이 바뀌면 보고서와 대조할 수 있도록 코퍼스 해시를 남긴다.
     policy_digest = hashlib.sha256()
     for path in sorted((ROOT / "data/raw/policies").glob("*.md")):
         policy_digest.update(path.name.encode("utf-8"))

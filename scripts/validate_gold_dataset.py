@@ -1,3 +1,6 @@
+"""Gold 데이터셋의 스키마와 정책/주문/상품 ID 참조 정합성을 검증한다.
+실행: python3 scripts/validate_gold_dataset.py (오류가 있으면 종료 코드 1)"""
+
 from __future__ import annotations
 
 import csv
@@ -24,6 +27,7 @@ REQUIRED_KEYS = {
 
 
 def read_jsonl(path: Path) -> list[dict]:
+    """JSONL 파일을 읽어 행 목록으로 반환하며, 잘못된 JSON은 줄 번호와 함께 오류를 낸다."""
     rows: list[dict] = []
     with path.open("r", encoding="utf-8") as handle:
         for line_no, line in enumerate(handle, start=1):
@@ -37,9 +41,11 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def collect_policy_ids(policy_dir: Path) -> set[str]:
+    """정책 마크다운 파일의 'Policy ID' 줄에서 정책 ID 집합을 모은다."""
     policy_ids: set[str] = set()
     for path in policy_dir.glob("*.md"):
         for line in path.read_text(encoding="utf-8").splitlines():
+            # 정책 ID는 줄 안에서 백틱으로 감싸져 있어 첫 번째 백틱 구간을 꺼낸다.
             if line.startswith(("Policy ID:", "정책 ID:")):
                 policy_ids.add(line.split("`", 2)[1])
                 break
@@ -47,11 +53,13 @@ def collect_policy_ids(policy_dir: Path) -> set[str]:
 
 
 def collect_csv_ids(path: Path, id_column: str) -> set[str]:
+    """CSV 파일에서 지정한 ID 컬럼 값의 집합을 반환한다."""
     with path.open("r", encoding="utf-8", newline="") as handle:
         return {row[id_column] for row in csv.DictReader(handle)}
 
 
 def validate(rows: list[dict], policy_ids: set[str]) -> list[str]:
+    """Gold 행의 필수 키, 중복 ID, 필드 타입, 존재하지 않는 정책 ID를 검사해 오류 메시지 목록을 반환한다."""
     errors: list[str] = []
     seen_ids: set[str] = set()
 
@@ -94,6 +102,7 @@ def validate(rows: list[dict], policy_ids: set[str]) -> list[str]:
 
 
 def main() -> int:
+    """Gold 데이터와 참조 데이터를 읽어 검증하고 결과 요약을 출력한다."""
     rows = read_jsonl(GOLD_PATH)
     policy_ids = collect_policy_ids(POLICY_DIR)
     order_ids = collect_csv_ids(ORDERS_PATH, "order_id")

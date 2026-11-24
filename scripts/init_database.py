@@ -1,4 +1,5 @@
-"""Explicitly import the versioned synthetic CSV records into PostgreSQL."""
+"""버전 관리되는 합성 CSV(주문, 상품)를 PostgreSQL에 명시적으로 적재하고 일치 여부를 검증한다.
+실행: SUPPORTOPS_DATABASE_URL=postgresql+psycopg://... python scripts/init_database.py"""
 
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from supportops.database import make_engine, seed_demo_data  # noqa: E402
 
 
 def main() -> int:
+    """DB 연결 정보를 확인한 뒤 CSV 데이터를 적재하고 확인된 주문/상품 수를 출력한다."""
     database_url = os.environ.get("SUPPORTOPS_DATABASE_URL")
     if not database_url:
         print("Set SUPPORTOPS_DATABASE_URL to a postgresql+psycopg:// URL", file=sys.stderr)
