@@ -11,3 +11,5 @@ venv/
 *.log
 coverage.xml
 htmlcov/
+
+AGENTS.md
